@@ -1,0 +1,20 @@
+# FlyRank Frontend AI Capstone
+
+## Tech Stack
+- **Frontend**: React + TypeScript
+- **Styling**: Tailwind CSS
+- **Build Tool**: Vite
+- **State Management**: Zustand
+- **AI Integration**: To be determined
+
+## Coding Conventions
+- Use functional components with hooks
+- Follow Airbnb JavaScript style guide
+- Write meaningful component names
+- Include JSDoc comments for complex functions
+
+## AI Assistant Instructions
+- Explain your reasoning when suggesting code
+- Suggest accessibility improvements by default
+- Help me optimize for performance
+- Write clean, readable code
