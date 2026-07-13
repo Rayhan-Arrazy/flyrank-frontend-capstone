@@ -1,279 +1,233 @@
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useSettingsStore } from '../../stores/settingsStore';
-import type { UserSettings } from '../../types/settings';
+import { useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  CheckboxField,
-  FormField,
-  SelectInput,
-  TextArea,
-  TextInput,
-} from './FormField';
-import {
-  settingsSchema,
+  ROLE_OPTIONS,
+  settingsFormSchema,
   type SettingsFormValues,
-} from './settingsSchema';
+} from "./schema";
+import { getPasswordStrength } from "./passwordStrength";
 
-const THEME_OPTIONS = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'system', label: 'System' },
-];
+const STRENGTH_COLORS = [
+  "bg-slate-200",
+  "bg-rose-500",
+  "bg-amber-500",
+  "bg-lime-500",
+  "bg-emerald-500",
+] as const;
 
-const LANGUAGE_OPTIONS = [
-  { value: 'en', label: 'English' },
-  { value: 'es', label: 'Spanish' },
-  { value: 'fr', label: 'French' },
-  { value: 'de', label: 'German' },
-];
-
-/**
- * Maps validated form values into the persisted settings shape.
- */
-function toUserSettings(values: SettingsFormValues): UserSettings {
-  return {
-    displayName: values.displayName,
-    email: values.email,
-    bio: values.bio ?? '',
-    website: values.website ?? '',
-    emailNotifications: values.emailNotifications,
-    marketingEmails: values.marketingEmails,
-    theme: values.theme,
-    language: values.language,
-  };
-}
-
-export function SettingsForm() {
-  const { settings, lastSavedAt, updateSettings, resetSettings } = useSettingsStore();
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
-
+export default function SettingsForm() {
   const {
     register,
     handleSubmit,
-    reset,
     watch,
-    setValue,
-    formState: { errors, isDirty, isSubmitting },
+    formState: { errors, isValid, isSubmitting },
   } = useForm<SettingsFormValues>({
-    resolver: zodResolver(settingsSchema),
-    defaultValues: settings,
-    mode: 'onBlur',
+    resolver: zodResolver(settingsFormSchema),
+    mode: "onChange",
+    defaultValues: {
+      fullName: "",
+      email: "",
+      password: "",
+      role: undefined,
+    },
   });
 
-  useEffect(() => {
-    reset(settings);
-  }, [settings, reset]);
+  const passwordValue = watch("password") ?? "";
+  const strength = useMemo(
+    () => getPasswordStrength(passwordValue),
+    [passwordValue],
+  );
 
-  const onSubmit = handleSubmit((values) => {
-    updateSettings(toUserSettings(values));
-    reset(values);
-    setSaveMessage('Settings saved successfully.');
-  });
-
-  const handleReset = () => {
-    resetSettings();
-    setSaveMessage(null);
+  const onSubmit = (data: SettingsFormValues) => {
+    // No backend yet — log the payload so the flow can be verified in devtools.
+    console.log("Settings form submitted:", data);
   };
-
-  const emailNotifications = watch('emailNotifications');
-  const marketingEmails = watch('marketingEmails');
 
   return (
     <form
-      onSubmit={onSubmit}
+      onSubmit={handleSubmit(onSubmit)}
       noValidate
-      className="space-y-8"
-      aria-label="Account settings"
+      className="mx-auto w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
     >
-      {saveMessage && (
-        <div
-          role="status"
-          className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
-        >
-          {saveMessage}
-          {lastSavedAt && (
-            <span className="mt-1 block text-emerald-700">
-              Last saved {new Date(lastSavedAt).toLocaleString()}
-            </span>
-          )}
-        </div>
-      )}
-
-      <section
-        aria-labelledby="profile-heading"
-        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-      >
-        <div className="mb-6">
-          <h2 id="profile-heading" className="text-base font-semibold text-slate-900">
-            Profile
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Update your public profile and contact details.
-          </p>
-        </div>
-
-        <div className="space-y-5">
-          <FormField
-            id="displayName"
-            label="Display name"
-            error={errors.displayName?.message}
-            hint="Shown on your profile and in team workspaces."
-          >
-            <TextInput
-              id="displayName"
-              type="text"
-              autoComplete="name"
-              hasError={Boolean(errors.displayName)}
-              aria-invalid={Boolean(errors.displayName)}
-              {...register('displayName')}
-            />
-          </FormField>
-
-          <FormField
-            id="email"
-            label="Email address"
-            error={errors.email?.message}
-          >
-            <TextInput
-              id="email"
-              type="email"
-              autoComplete="email"
-              hasError={Boolean(errors.email)}
-              aria-invalid={Boolean(errors.email)}
-              {...register('email')}
-            />
-          </FormField>
-
-          <FormField
-            id="bio"
-            label="Bio"
-            error={errors.bio?.message}
-            hint="Optional. Up to 280 characters."
-          >
-            <TextArea
-              id="bio"
-              hasError={Boolean(errors.bio)}
-              aria-invalid={Boolean(errors.bio)}
-              {...register('bio')}
-            />
-          </FormField>
-
-          <FormField
-            id="website"
-            label="Website"
-            error={errors.website?.message}
-            hint="Optional. Include https://"
-          >
-            <TextInput
-              id="website"
-              type="url"
-              placeholder="https://example.com"
-              hasError={Boolean(errors.website)}
-              aria-invalid={Boolean(errors.website)}
-              {...register('website')}
-            />
-          </FormField>
-        </div>
-      </section>
-
-      <section
-        aria-labelledby="notifications-heading"
-        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-      >
-        <div className="mb-6">
-          <h2 id="notifications-heading" className="text-base font-semibold text-slate-900">
-            Notifications
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Choose which emails you want to receive.
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <CheckboxField
-            id="emailNotifications"
-            label="Product updates"
-            description="Receive emails about new features and improvements."
-            checked={emailNotifications}
-            onChange={(checked) =>
-              setValue('emailNotifications', checked, { shouldDirty: true })
-            }
-          />
-
-          <CheckboxField
-            id="marketingEmails"
-            label="Marketing emails"
-            description="Occasional tips, case studies, and promotional offers."
-            checked={marketingEmails}
-            onChange={(checked) =>
-              setValue('marketingEmails', checked, { shouldDirty: true })
-            }
-          />
-        </div>
-      </section>
-
-      <section
-        aria-labelledby="preferences-heading"
-        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-      >
-        <div className="mb-6">
-          <h2 id="preferences-heading" className="text-base font-semibold text-slate-900">
-            Preferences
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Customize your app experience.
-          </p>
-        </div>
-
-        <div className="grid gap-5 sm:grid-cols-2">
-          <FormField
-            id="theme"
-            label="Theme"
-            error={errors.theme?.message}
-          >
-            <SelectInput
-              id="theme"
-              options={THEME_OPTIONS}
-              hasError={Boolean(errors.theme)}
-              aria-invalid={Boolean(errors.theme)}
-              {...register('theme')}
-            />
-          </FormField>
-
-          <FormField
-            id="language"
-            label="Language"
-            error={errors.language?.message}
-          >
-            <SelectInput
-              id="language"
-              options={LANGUAGE_OPTIONS}
-              hasError={Boolean(errors.language)}
-              aria-invalid={Boolean(errors.language)}
-              {...register('language')}
-            />
-          </FormField>
-        </div>
-      </section>
-
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <button
-          type="button"
-          onClick={handleReset}
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-        >
-          Reset to defaults
-        </button>
-
-        <button
-          type="submit"
-          disabled={!isDirty || isSubmitting}
-          className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 disabled:cursor-not-allowed disabled:bg-slate-300"
-        >
-          {isSubmitting ? 'Saving…' : 'Save changes'}
-        </button>
+      <div>
+        <h2 className="text-lg font-semibold text-slate-900">
+          Account settings
+        </h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Update your profile details below.
+        </p>
       </div>
+
+      {/* Full Name */}
+      <div>
+        <label
+          htmlFor="fullName"
+          className="mb-1.5 block text-sm font-medium text-slate-700"
+        >
+          Full name
+        </label>
+        <input
+          id="fullName"
+          type="text"
+          autoComplete="name"
+          aria-invalid={errors.fullName ? "true" : "false"}
+          aria-describedby={errors.fullName ? "fullName-error" : undefined}
+          className={`w-full rounded-lg border px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:ring-2 focus:ring-offset-0 ${
+            errors.fullName
+              ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100"
+              : "border-slate-300 focus:border-indigo-500 focus:ring-indigo-100"
+          }`}
+          {...register("fullName")}
+        />
+        {errors.fullName && (
+          <p
+            id="fullName-error"
+            role="alert"
+            className="mt-1.5 text-sm text-rose-600"
+          >
+            {errors.fullName.message}
+          </p>
+        )}
+      </div>
+
+      {/* Email */}
+      <div>
+        <label
+          htmlFor="email"
+          className="mb-1.5 block text-sm font-medium text-slate-700"
+        >
+          Email
+        </label>
+        <input
+          id="email"
+          type="email"
+          autoComplete="email"
+          aria-invalid={errors.email ? "true" : "false"}
+          aria-describedby={errors.email ? "email-error" : undefined}
+          className={`w-full rounded-lg border px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:ring-2 focus:ring-offset-0 ${
+            errors.email
+              ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100"
+              : "border-slate-300 focus:border-indigo-500 focus:ring-indigo-100"
+          }`}
+          {...register("email")}
+        />
+        {errors.email && (
+          <p
+            id="email-error"
+            role="alert"
+            className="mt-1.5 text-sm text-rose-600"
+          >
+            {errors.email.message}
+          </p>
+        )}
+      </div>
+
+      {/* Password */}
+      <div>
+        <label
+          htmlFor="password"
+          className="mb-1.5 block text-sm font-medium text-slate-700"
+        >
+          Password{" "}
+          <span className="font-normal text-slate-400">(optional)</span>
+        </label>
+        <input
+          id="password"
+          type="password"
+          autoComplete="new-password"
+          aria-invalid={errors.password ? "true" : "false"}
+          aria-describedby={
+            errors.password ? "password-error" : "password-strength"
+          }
+          className={`w-full rounded-lg border px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:ring-2 focus:ring-offset-0 ${
+            errors.password
+              ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100"
+              : "border-slate-300 focus:border-indigo-500 focus:ring-indigo-100"
+          }`}
+          {...register("password")}
+        />
+
+        {errors.password ? (
+          <p
+            id="password-error"
+            role="alert"
+            className="mt-1.5 text-sm text-rose-600"
+          >
+            {errors.password.message}
+          </p>
+        ) : (
+          passwordValue.length > 0 && (
+            <div id="password-strength" className="mt-2" aria-live="polite">
+              <div
+                className="flex gap-1"
+                role="img"
+                aria-label={`Password strength: ${strength.label}`}
+              >
+                {[1, 2, 3, 4].map((bar) => (
+                  <span
+                    key={bar}
+                    className={`h-1.5 flex-1 rounded-full transition-colors ${
+                      bar <= strength.level
+                        ? STRENGTH_COLORS[strength.level]
+                        : "bg-slate-200"
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-slate-500">{strength.label}</p>
+            </div>
+          )
+        )}
+      </div>
+
+      {/* Role */}
+      <div>
+        <label
+          htmlFor="role"
+          className="mb-1.5 block text-sm font-medium text-slate-700"
+        >
+          Role
+        </label>
+        <select
+          id="role"
+          defaultValue=""
+          aria-invalid={errors.role ? "true" : "false"}
+          aria-describedby={errors.role ? "role-error" : undefined}
+          className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:ring-2 focus:ring-offset-0 ${
+            errors.role
+              ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100"
+              : "border-slate-300 focus:border-indigo-500 focus:ring-indigo-100"
+          }`}
+          {...register("role")}
+        >
+          <option value="" disabled>
+            Select a role
+          </option>
+          {ROLE_OPTIONS.map((role) => (
+            <option key={role} value={role}>
+              {role}
+            </option>
+          ))}
+        </select>
+        {errors.role && (
+          <p
+            id="role-error"
+            role="alert"
+            className="mt-1.5 text-sm text-rose-600"
+          >
+            {errors.role.message}
+          </p>
+        )}
+      </div>
+
+      <button
+        type="submit"
+        disabled={!isValid || isSubmitting}
+        className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+      >
+        {isSubmitting ? "Saving..." : "Save changes"}
+      </button>
     </form>
   );
 }
