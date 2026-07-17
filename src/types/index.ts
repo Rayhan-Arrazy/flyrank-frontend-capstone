@@ -1,3 +1,17 @@
+export type AssetCategory = 'commodity' | 'crypto' | 'currency'
+
+export interface Asset {
+  id: string
+  name: string
+  symbol: string
+  price: number
+  change24h: number
+  changePercent24h: number
+  category: AssetCategory
+  unit?: string
+  lastUpdated: string
+}
+
 export interface Commodity {
   id: string
   name: string
@@ -24,9 +38,20 @@ export interface PriceHistory {
 
 export interface WatchlistItem {
   id: string
-  type: 'commodity' | 'currency'
+  type: AssetCategory
   symbol: string
   addedAt: string
+}
+
+export interface PortfolioHolding {
+  id: string
+  assetId: string
+  name: string
+  symbol: string
+  quantity: number
+  buyPrice: number
+  boughtAt: string
+  category: AssetCategory
 }
 
 export interface CacheEntry<T> {

@@ -1,27 +1,46 @@
 import { useState, useCallback } from 'react'
 import { useValuoStore } from '../store/valuoStore'
 import { useRealtimePrices } from '../hooks/useRealtimePrices'
-import CommodityCard from './CommodityCard'
-import CurrencyConverter from './CurrencyConverter'
-import PriceChart from './PriceChart'
+import AssetCard from './AssetCard'
+import CategoryTabs from './CategoryTabs'
+import UnifiedConverter from './UnifiedConverter'
+import CommodityCharts from './CommodityCharts'
+import PortfolioPanel from './PortfolioPanel'
 import SearchBar from './SearchBar'
 import Watchlist from './Watchlist'
-import { Commodity, PriceHistory, WatchlistItem } from '../types'
+import { Asset, WatchlistItem, PortfolioHolding } from '../types'
 
 export default function Dashboard() {
-  const commodities = useValuoStore((s) => s.commodities)
+  const assets = useValuoStore((s) => s.assets)
   const watchlist = useValuoStore((s) => s.watchlist)
+  const portfolio = useValuoStore((s) => s.portfolio)
+  const selectedCategory = useValuoStore((s) => s.selectedCategory)
   const addToWatchlist = useValuoStore((s) => s.addToWatchlist)
   const removeFromWatchlist = useValuoStore((s) => s.removeFromWatchlist)
+  const addToPortfolio = useValuoStore((s) => s.addToPortfolio)
+  const removeFromPortfolio = useValuoStore((s) => s.removeFromPortfolio)
+  const setSelectedCategory = useValuoStore((s) => s.setSelectedCategory)
   const isLoading = useValuoStore((s) => s.isLoading)
   const error = useValuoStore((s) => s.error)
   const lastUpdated = useValuoStore((s) => s.lastUpdated)
   const refreshPrices = useValuoStore((s) => s.refreshPrices)
 
-  const [selectedCommodity, setSelectedCommodity] = useState<Commodity | null>(null)
-  const [chartData] = useState<PriceHistory[]>([])
+  const [showPortfolio, setShowPortfolio] = useState(false)
 
-  useRealtimePrices(10000)
+  useRealtimePrices(15000)
+
+  const filteredAssets = selectedCategory === 'all'
+    ? assets
+    : assets.filter((a) => a.category === selectedCategory)
+
+  const categoryCounts: Record<string, number> = {
+    all: assets.length,
+    commodity: assets.filter((a) => a.category === 'commodity').length,
+    crypto: assets.filter((a) => a.category === 'crypto').length,
+    currency: assets.filter((a) => a.category === 'currency').length,
+  }
+
+  const commodities = assets.filter((a) => a.category === 'commodity')
 
   const handleToggleWatchlist = useCallback(
     (item: WatchlistItem) => {
@@ -35,36 +54,63 @@ export default function Dashboard() {
     [watchlist, addToWatchlist, removeFromWatchlist]
   )
 
-  const handleCommodityClick = useCallback((commodity: Commodity) => {
-    setSelectedCommodity(commodity)
-  }, [])
+  const handleAddToPortfolio = useCallback(
+    (asset: Asset) => {
+      const existing = portfolio.find((h) => h.assetId === asset.id || h.assetId === asset.symbol)
+      const holding: PortfolioHolding = {
+        id: `holding-${asset.id}-${Date.now()}`,
+        assetId: asset.id,
+        name: asset.name,
+        symbol: asset.symbol,
+        quantity: (existing?.quantity || 0) + 1,
+        buyPrice: asset.price,
+        boughtAt: new Date().toISOString(),
+        category: asset.category,
+      }
+      addToPortfolio(holding)
+    },
+    [portfolio, addToPortfolio]
+  )
 
-  const isInWatchlist = (commodityId: string) =>
-    watchlist.some((w) => w.id === `commodity-${commodityId}`)
+  const isInWatchlist = (assetId: string, cat: string) =>
+    watchlist.some((w) => w.id === `${cat}-${assetId}`)
+
+  const isInPortfolio = (assetId: string) =>
+    portfolio.some((h) => h.assetId === assetId || h.assetId === assetId)
 
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="bg-slate-800 text-white sticky top-0 z-40 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <h1 className="text-xl font-bold tracking-tight">Valuo</h1>
-              <span className="hidden sm:inline text-sm text-slate-400">Real-Time Prices</span>
+              <span className="hidden sm:inline text-sm text-slate-400">One-Stop Asset Platform</span>
             </div>
-            <SearchBar />
-            <div className="hidden md:flex items-center gap-4 text-xs text-slate-400">
-              {lastUpdated && (
-                <span>
-                  Updated: {new Date(lastUpdated).toLocaleTimeString()}
-                </span>
-              )}
-              <button
-                onClick={refreshPrices}
-                disabled={isLoading}
-                className="px-3 py-1.5 bg-amber-500 text-slate-900 font-medium rounded-lg hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 text-xs"
-              >
-                {isLoading ? 'Loading...' : 'Refresh'}
-              </button>
+            <div className="hidden md:flex items-center gap-4">
+              <SearchBar />
+              <div className="flex items-center gap-3 text-xs text-slate-400">
+                {lastUpdated && (
+                  <span>Updated: {new Date(lastUpdated).toLocaleTimeString()}</span>
+                )}
+                <button
+                  onClick={() => setShowPortfolio(!showPortfolio)}
+                  className={`px-3 py-1.5 font-medium rounded-lg transition-colors duration-200 text-xs ${
+                    showPortfolio
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  Portfolio {portfolio.length > 0 && `(${portfolio.length})`}
+                </button>
+                <button
+                  onClick={refreshPrices}
+                  disabled={isLoading}
+                  className="px-3 py-1.5 bg-amber-500 text-slate-900 font-medium rounded-lg hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 text-xs"
+                >
+                  {isLoading ? 'Loading...' : 'Refresh'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -88,23 +134,48 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Mobile: last updated + refresh */}
         <div className="flex md:hidden items-center justify-between mb-4 text-xs text-gray-400">
           {lastUpdated && <span>Updated: {new Date(lastUpdated).toLocaleTimeString()}</span>}
-          <button
-            onClick={refreshPrices}
-            disabled={isLoading}
-            className="px-3 py-1.5 bg-amber-500 text-slate-900 font-medium rounded-lg hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 text-xs"
-          >
-            {isLoading ? 'Loading...' : 'Refresh'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowPortfolio(!showPortfolio)}
+              className={`px-3 py-1.5 font-medium rounded-lg transition-colors duration-200 text-xs ${
+                showPortfolio ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600'
+              }`}
+            >
+              Portfolio {portfolio.length > 0 && `(${portfolio.length})`}
+            </button>
+            <button
+              onClick={refreshPrices}
+              disabled={isLoading}
+              className="px-3 py-1.5 bg-amber-500 text-slate-900 font-medium rounded-lg hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 text-xs"
+            >
+              {isLoading ? 'Loading...' : 'Refresh'}
+            </button>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <CategoryTabs
+            selected={selectedCategory}
+            onChange={setSelectedCategory}
+            counts={categoryCounts}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <Watchlist />
+            {showPortfolio ? (
+              <PortfolioPanel
+                holdings={portfolio}
+                assets={assets}
+                onRemove={removeFromPortfolio}
+              />
+            ) : (
+              <Watchlist />
+            )}
 
-            {isLoading && commodities.length === 0 ? (
+            {isLoading && filteredAssets.length === 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 animate-pulse">
@@ -119,13 +190,15 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {commodities.map((commodity) => (
-                  <CommodityCard
-                    key={commodity.id}
-                    commodity={commodity}
-                    isInWatchlist={isInWatchlist(commodity.id)}
+                {filteredAssets.map((asset) => (
+                  <AssetCard
+                    key={`${asset.category}-${asset.id}`}
+                    asset={asset}
+                    isInWatchlist={isInWatchlist(asset.id, asset.category)}
+                    isInPortfolio={isInPortfolio(asset.id)}
                     onToggleWatchlist={handleToggleWatchlist}
-                    onClick={handleCommodityClick}
+                    onAddToPortfolio={handleAddToPortfolio}
+                    onClick={() => {}}
                   />
                 ))}
               </div>
@@ -133,18 +206,15 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-6">
-            <CurrencyConverter />
-            <PriceChart
-              data={
-                selectedCommodity
-                  ? chartData
-                  : []
-              }
-              symbol={selectedCommodity?.symbol || 'Select an asset'}
-              isLoading={isLoading && chartData.length === 0}
-            />
+            <UnifiedConverter assets={assets} />
           </div>
         </div>
+
+        {commodities.length > 0 && (
+          <div className="mt-6">
+            <CommodityCharts commodities={commodities} />
+          </div>
+        )}
       </main>
     </div>
   )

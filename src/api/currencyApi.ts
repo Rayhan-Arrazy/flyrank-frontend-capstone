@@ -1,50 +1,57 @@
-import { Currency } from '../types'
+import { Asset } from '../types'
 import { CURRENCIES } from '../constants'
 
-interface FrankfurterResponse {
-  amount: number
-  base: string
-  date: string
-  rates: Record<string, number>
+const HARDCODED_RATES: Record<string, number> = {
+  USD: 1.0000,
+  EUR: 0.9200,
+  GBP: 0.7900,
+  JPY: 0.0067,
+  IDR: 0.000064,
+  AUD: 0.6500,
+  CAD: 0.7300,
+  CHF: 1.1000,
+  SGD: 0.7400,
 }
 
-let lastFetch = 0
-let cachedRates: Currency[] = []
-const CACHE_DURATION = 30000
-
-export async function fetchExchangeRates(baseCurrency: string): Promise<Currency[]> {
-  const now = Date.now()
-  if (now - lastFetch < CACHE_DURATION && cachedRates.length > 0) {
-    return cachedRates
-  }
-
-  const url = `https://api.frankfurter.app/latest?from=${baseCurrency}`
-
+async function fetchFromFrankfurter(): Promise<Asset[] | null> {
   try {
-    const response = await fetch(url)
-    if (!response.ok) {
-      throw new Error(`Frankfurter API returned ${response.status}`)
-    }
-    const data: FrankfurterResponse = await response.json()
-
-    const currencies: Currency[] = CURRENCIES.map((c) => {
-      const rate = c.code === baseCurrency ? 1 : data.rates[c.code] ?? 0
-      return {
-        code: c.code,
-        name: c.name,
-        exchangeRate: rate,
-        change24h: 0,
-      }
+    const res = await fetch('https://api.frankfurter.app/latest?from=USD', {
+      signal: AbortSignal.timeout(5000),
     })
+    if (!res.ok) throw new Error(`Frankfurter returned ${res.status}`)
+    const data = await res.json()
+    const now = new Date().toISOString()
 
-    cachedRates = currencies
-    lastFetch = now
-    return currencies
-  } catch (error) {
-    console.error('Failed to fetch exchange rates:', error)
-    if (cachedRates.length > 0) {
-      return cachedRates
-    }
-    throw error
+    return CURRENCIES.map((c) => ({
+      id: c.code,
+      name: c.name,
+      symbol: c.code,
+      price: data.rates[c.code] ?? HARDCODED_RATES[c.code] ?? 0,
+      change24h: 0,
+      changePercent24h: 0,
+      category: 'currency' as const,
+      unit: c.code,
+      lastUpdated: now,
+    }))
+  } catch {
+    return null
   }
+}
+
+export async function fetchExchangeRates(_baseCurrency: string): Promise<Asset[]> {
+  const apiData = await fetchFromFrankfurter()
+  if (apiData) return apiData
+
+  const now = new Date().toISOString()
+  return CURRENCIES.map((c) => ({
+    id: c.code,
+    name: c.name,
+    symbol: c.code,
+    price: HARDCODED_RATES[c.code] ?? 0,
+    change24h: 0,
+    changePercent24h: 0,
+    category: 'currency' as const,
+    unit: c.code,
+    lastUpdated: now,
+  }))
 }

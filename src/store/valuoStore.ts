@@ -1,24 +1,28 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { Commodity, Currency, WatchlistItem } from '../types'
-import { fetchAllPrices } from '../api/combinedApi'
+import { Asset, AssetCategory, WatchlistItem, PortfolioHolding } from '../types'
+import { fetchAllAssets } from '../api/combinedApi'
 
 interface ValuoState {
-  commodities: Commodity[]
-  currencies: Currency[]
+  assets: Asset[]
   watchlist: WatchlistItem[]
+  portfolio: PortfolioHolding[]
   baseCurrency: string
+  selectedCategory: AssetCategory | 'all'
   isLoading: boolean
   error: string | null
   lastUpdated: string | null
 }
 
 interface ValuoActions {
-  fetchAllPrices: () => Promise<void>
+  fetchAllAssets: () => Promise<void>
   addToWatchlist: (item: WatchlistItem) => void
   removeFromWatchlist: (id: string) => void
   setBaseCurrency: (currency: string) => void
+  setSelectedCategory: (category: AssetCategory | 'all') => void
   refreshPrices: () => Promise<void>
+  addToPortfolio: (holding: PortfolioHolding) => void
+  removeFromPortfolio: (id: string) => void
 }
 
 type ValuoStore = ValuoState & ValuoActions
@@ -26,23 +30,23 @@ type ValuoStore = ValuoState & ValuoActions
 export const useValuoStore = create<ValuoStore>()(
   persist(
     (set, get) => ({
-      commodities: [],
-      currencies: [],
+      assets: [],
       watchlist: [],
+      portfolio: [],
       baseCurrency: 'USD',
+      selectedCategory: 'all',
       isLoading: false,
       error: null,
       lastUpdated: null,
 
-      fetchAllPrices: async () => {
+      fetchAllAssets: async () => {
         const { baseCurrency } = get()
         set({ isLoading: true, error: null })
 
         try {
-          const data = await fetchAllPrices(baseCurrency)
+          const data = await fetchAllAssets(baseCurrency)
           set({
-            commodities: data.commodities,
-            currencies: data.currencies,
+            assets: data,
             isLoading: false,
             lastUpdated: new Date().toISOString(),
           })
@@ -69,14 +73,41 @@ export const useValuoStore = create<ValuoStore>()(
         set({ baseCurrency: currency })
       },
 
+      setSelectedCategory: (category: AssetCategory | 'all') => {
+        set({ selectedCategory: category })
+      },
+
       refreshPrices: async () => {
-        await get().fetchAllPrices()
+        await get().fetchAllAssets()
+      },
+
+      addToPortfolio: (holding: PortfolioHolding) => {
+        const { portfolio } = get()
+        const existing = portfolio.find((h) => h.assetId === holding.assetId)
+        if (existing) {
+          const totalQty = existing.quantity + holding.quantity
+          const avgPrice = (existing.buyPrice * existing.quantity + holding.buyPrice * holding.quantity) / totalQty
+          set({
+            portfolio: portfolio.map((h) =>
+              h.id === existing.id
+                ? { ...h, quantity: totalQty, buyPrice: avgPrice }
+                : h
+            ),
+          })
+        } else {
+          set({ portfolio: [...portfolio, holding] })
+        }
+      },
+
+      removeFromPortfolio: (id: string) => {
+        set({ portfolio: get().portfolio.filter((h) => h.id !== id) })
       },
     }),
     {
       name: 'valuo-storage',
       partialize: (state) => ({
         watchlist: state.watchlist,
+        portfolio: state.portfolio,
         baseCurrency: state.baseCurrency,
       }),
     }

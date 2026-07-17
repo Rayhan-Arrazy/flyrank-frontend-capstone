@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useValuoStore } from '../store/valuoStore'
-import { COMMODITIES, CURRENCIES } from '../constants'
 
 interface SearchResult {
-  type: 'commodity' | 'currency'
+  category: string
   id: string
   symbol: string
   name: string
+  price: number
 }
 
 export default function SearchBar() {
@@ -17,8 +17,7 @@ export default function SearchBar() {
   const dropdownRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const currencies = useValuoStore((s) => s.currencies)
-  const commodities = useValuoStore((s) => s.commodities)
+  const assets = useValuoStore((s) => s.assets)
 
   const handleChange = useCallback((value: string) => {
     setQuery(value)
@@ -51,41 +50,31 @@ export default function SearchBar() {
   const results: SearchResult[] = (() => {
     if (!debouncedQuery.trim()) return []
     const q = debouncedQuery.toLowerCase()
-
-    const commodityResults: SearchResult[] = COMMODITIES
+    return assets
       .filter(
-        (c) =>
-          c.name.toLowerCase().includes(q) || c.symbol.toLowerCase().includes(q)
+        (a) =>
+          a.name.toLowerCase().includes(q) ||
+          a.symbol.toLowerCase().includes(q)
       )
-      .map((c) => ({
-        type: 'commodity' as const,
-        id: c.id,
-        symbol: c.symbol,
-        name: c.name,
+      .map((a) => ({
+        category: a.category,
+        id: a.id,
+        symbol: a.symbol,
+        name: a.name,
+        price: a.price,
       }))
-
-    const currencyResults: SearchResult[] = CURRENCIES
-      .filter(
-        (c) =>
-          c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
-      )
-      .map((c) => ({
-        type: 'currency' as const,
-        id: c.code,
-        symbol: c.code,
-        name: c.name,
-      }))
-
-    return [...commodityResults, ...currencyResults]
   })()
 
-  const getCurrentPrice = (result: SearchResult): string => {
-    if (result.type === 'commodity') {
-      const c = commodities.find((c) => c.symbol === result.symbol)
-      return c ? `$${c.price.toLocaleString()}` : ''
-    }
-    const c = currencies.find((c) => c.code === result.symbol)
-    return c ? `${c.exchangeRate.toFixed(4)}` : ''
+  const CATEGORY_COLORS: Record<string, string> = {
+    commodity: 'text-amber-600 bg-amber-50',
+    crypto: 'text-purple-600 bg-purple-50',
+    currency: 'text-blue-600 bg-blue-50',
+  }
+
+  const CATEGORY_LABELS: Record<string, string> = {
+    commodity: 'CMD',
+    crypto: 'CRYPTO',
+    currency: 'CUR',
   }
 
   return (
@@ -113,7 +102,7 @@ export default function SearchBar() {
             setIsOpen(true)
           }}
           onFocus={() => setIsOpen(true)}
-          placeholder="Search commodities or currencies..."
+          placeholder="Search commodities, crypto, currencies..."
           className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
         />
         {query && (
@@ -146,7 +135,7 @@ export default function SearchBar() {
             <ul>
               {results.map((result) => (
                 <li
-                  key={`${result.type}-${result.id}`}
+                  key={`${result.category}-${result.id}`}
                   className="px-4 py-3 hover:bg-slate-50 cursor-pointer flex items-center justify-between transition-colors duration-150"
                   onClick={() => {
                     setQuery('')
@@ -156,20 +145,18 @@ export default function SearchBar() {
                 >
                   <div className="flex items-center gap-3">
                     <span
-                      className={`text-xs font-semibold uppercase px-1.5 py-0.5 rounded ${
-                        result.type === 'commodity'
-                          ? 'text-amber-600 bg-amber-50'
-                          : 'text-blue-600 bg-blue-50'
-                      }`}
+                      className={`text-xs font-semibold uppercase px-1.5 py-0.5 rounded ${CATEGORY_COLORS[result.category] || 'bg-gray-50 text-gray-600'}`}
                     >
-                      {result.type === 'commodity' ? 'CMD' : 'CUR'}
+                      {CATEGORY_LABELS[result.category] || result.category.toUpperCase()}
                     </span>
                     <div>
                       <div className="text-sm font-medium text-slate-800">{result.symbol}</div>
                       <div className="text-xs text-gray-400">{result.name}</div>
                     </div>
                   </div>
-                  <div className="text-sm font-medium text-slate-700">{getCurrentPrice(result)}</div>
+                  <div className="text-sm font-medium text-slate-700">
+                    ${result.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </div>
                 </li>
               ))}
             </ul>

@@ -1,14 +1,12 @@
-import { Commodity, Currency, CacheEntry } from '../types'
+import { Asset, CacheEntry } from '../types'
 import { fetchExchangeRates } from './currencyApi'
 import { fetchCommodityPrices } from './commodityApi'
+import { fetchCryptoPrices } from './cryptoApi'
 
-const cache: Record<string, CacheEntry<{ commodities: Commodity[]; currencies: Currency[] }>> = {}
+const cache: Record<string, CacheEntry<Asset[]>> = {}
 const CACHE_DURATION = 30000
 
-export async function fetchAllPrices(baseCurrency: string): Promise<{
-  commodities: Commodity[]
-  currencies: Currency[]
-}> {
+export async function fetchAllAssets(baseCurrency: string): Promise<Asset[]> {
   const cacheKey = `all_${baseCurrency}`
   const now = Date.now()
   const cached = cache[cacheKey]
@@ -17,19 +15,13 @@ export async function fetchAllPrices(baseCurrency: string): Promise<{
     return cached.data
   }
 
-  try {
-    const [commodities, currencies] = await Promise.all([
-      fetchCommodityPrices(),
-      fetchExchangeRates(baseCurrency),
-    ])
+  const [commodities, crypto, currencies] = await Promise.all([
+    fetchCommodityPrices(),
+    fetchCryptoPrices(),
+    fetchExchangeRates(baseCurrency),
+  ])
 
-    const result = { commodities, currencies }
-    cache[cacheKey] = { data: result, timestamp: now }
-    return result
-  } catch (error) {
-    if (cached) {
-      return cached.data
-    }
-    throw error
-  }
+  const result = [...commodities, ...crypto, ...currencies]
+  cache[cacheKey] = { data: result, timestamp: now }
+  return result
 }

@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { useValuoStore } from '../store/valuoStore'
 
 export function useRealtimePrices(refreshInterval: number = 10000) {
-  const fetchAllPrices = useValuoStore((s) => s.fetchAllPrices)
+  const fetchAllAssets = useValuoStore((s) => s.fetchAllAssets)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const retryCountRef = useRef(0)
   const maxRetries = 5
@@ -11,7 +11,7 @@ export function useRealtimePrices(refreshInterval: number = 10000) {
     let retries = 0
     while (retries < maxRetries) {
       try {
-        await fetchAllPrices()
+        await fetchAllAssets()
         retryCountRef.current = 0
         return
       } catch (error) {
@@ -25,7 +25,7 @@ export function useRealtimePrices(refreshInterval: number = 10000) {
         await new Promise((resolve) => setTimeout(resolve, delay))
       }
     }
-  }, [fetchAllPrices])
+  }, [fetchAllAssets])
 
   useEffect(() => {
     if (!navigator.onLine) {
