@@ -9,21 +9,27 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.23",
+    "@radix-ui/react-tabs": "^1.1.21",
+    "@reduxjs/toolkit": "^2.12.0",
+    "axios": "^1.18.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.27.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-redux": "^9.3.0",
-    "@reduxjs/toolkit": "^2.12.0",
-    "zustand": "^5.0.14",
     "recharts": "^3.9.2",
-    "axios": "^1.18.1"
+    "tailwind-merge": "^3.6.0",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
-    "typescript": "^5.7.3",
-    "vite": "^6.4.3",
-    "@vitejs/plugin-react": "^4.7.0",
     "@tailwindcss/vite": "^4.3.3",
-    "tailwindcss": "^4.3.3",
     "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3"
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.7.3",
+    "vite": "^6.4.3"
   }
 }
