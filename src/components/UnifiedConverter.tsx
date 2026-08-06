@@ -106,7 +106,7 @@ export default function UnifiedConverter({ assets, initialFrom, initialTo }: Uni
               className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
                 isActive
                   ? tab.color + ' shadow-sm'
-                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
               {tab.label}
@@ -117,8 +117,9 @@ export default function UnifiedConverter({ assets, initialFrom, initialTo }: Uni
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm text-gray-500 mb-1">Amount</label>
+          <label htmlFor="converter-amount" className="block text-sm text-gray-500 mb-1">Amount</label>
           <input
+            id="converter-amount"
             type="number"
             value={amount}
             onChange={(e) => setAmount(Math.max(0, parseFloat(e.target.value) || 0))}
@@ -129,8 +130,9 @@ export default function UnifiedConverter({ assets, initialFrom, initialTo }: Uni
 
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           <div>
-            <label className="block text-sm text-gray-500 mb-1">From</label>
+            <label htmlFor="converter-from" className="block text-sm text-gray-500 mb-1">From</label>
             <select
+              id="converter-from"
               value={fromAsset}
               onChange={(e) => setFromAsset(e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-white text-sm"
@@ -154,8 +156,9 @@ export default function UnifiedConverter({ assets, initialFrom, initialTo }: Uni
           </button>
 
           <div>
-            <label className="block text-sm text-gray-500 mb-1">To</label>
+            <label htmlFor="converter-to" className="block text-sm text-gray-500 mb-1">To</label>
             <select
+              id="converter-to"
               value={toAsset}
               onChange={(e) => setToAsset(e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-white text-sm"
@@ -190,7 +193,7 @@ export default function UnifiedConverter({ assets, initialFrom, initialTo }: Uni
               {result.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 6 })} {toAsset}
             </div>
           </div>
-          <div className="text-xs text-gray-400 mt-1">
+          <div className="text-xs text-gray-500 mt-1">
             1 {fromAsset} = {(fromPrice / toPrice).toFixed(6)} {toAsset}
           </div>
         </div>

@@ -18,7 +18,6 @@ export function useRealtimePrices(refreshInterval: number = 10000) {
         retries++
         retryCountRef.current = retries
         if (retries >= maxRetries) {
-          console.error('Max retries reached for price fetch')
           return
         }
         const delay = Math.min(1000 * Math.pow(2, retries), 30000)

@@ -1,6 +1,18 @@
-import React, { useEffect } from 'react'
-import Dashboard from './components/Dashboard'
+import React, { Suspense, lazy, useEffect } from 'react'
 import { useValuoStore } from './store/valuoStore'
+
+const Dashboard = lazy(() => import('./components/Dashboard'))
+
+function DashboardFallback() {
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-xl font-bold tracking-tight text-slate-800">Valuo</h1>
+        <p className="text-sm text-gray-500 mt-1">Loading...</p>
+      </div>
+    </div>
+  )
+}
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -56,7 +68,9 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <Dashboard />
+      <Suspense fallback={<DashboardFallback />}>
+        <Dashboard />
+      </Suspense>
     </ErrorBoundary>
   )
 }
