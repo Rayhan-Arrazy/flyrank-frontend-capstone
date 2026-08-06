@@ -134,7 +134,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="flex md:hidden items-center justify-between mb-4 text-xs text-gray-500">
+        <div className="flex md:hidden items-center justify-between mb-4 text-xs text-gray-400">
           {lastUpdated && <span>Updated: {new Date(lastUpdated).toLocaleTimeString()}</span>}
           <div className="flex gap-2">
             <button

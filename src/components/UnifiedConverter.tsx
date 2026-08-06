@@ -106,7 +106,7 @@ export default function UnifiedConverter({ assets, initialFrom, initialTo }: Uni
               className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
                 isActive
                   ? tab.color + ' shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
               }`}
             >
               {tab.label}
@@ -193,7 +193,7 @@ export default function UnifiedConverter({ assets, initialFrom, initialTo }: Uni
               {result.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 6 })} {toAsset}
             </div>
           </div>
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-gray-400 mt-1">
             1 {fromAsset} = {(fromPrice / toPrice).toFixed(6)} {toAsset}
           </div>
         </div>

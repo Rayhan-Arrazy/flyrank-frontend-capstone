@@ -35,12 +35,12 @@ export default function CommodityCard({
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-lg font-bold text-slate-800">{commodity.symbol}</span>
-          <span className="text-xs text-gray-500 uppercase tracking-wide">{commodity.name}</span>
+          <span className="text-xs text-gray-400 uppercase tracking-wide">{commodity.name}</span>
         </div>
         <button
           onClick={handleStarClick}
           className={`p-1.5 rounded-lg transition-colors duration-200 ${
-            isInWatchlist ? 'text-amber-600 hover:text-amber-700' : 'text-gray-500 hover:text-gray-600'
+            isInWatchlist ? 'text-amber-400 hover:text-amber-500' : 'text-gray-300 hover:text-gray-400'
           }`}
           aria-label={isInWatchlist ? 'Remove from watchlist' : 'Add to watchlist'}
         >
@@ -61,7 +61,7 @@ export default function CommodityCard({
           <span className={`text-xs ${changeColor}`}>
             ({isPositive ? '+' : ''}{commodity.changePercent24h.toFixed(2)}%)
           </span>
-          <span className="text-xs text-gray-500">/ {commodity.unit}</span>
+          <span className="text-xs text-gray-400">/ {commodity.unit}</span>
         </div>
       </div>
     </div>
