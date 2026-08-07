@@ -24,9 +24,11 @@ function App() {
       setLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ? { id: session.user.id } : null);
-    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ? { id: session.user.id } : null);
+      },
+    );
 
     return () => listener?.subscription.unsubscribe();
   }, []);
@@ -45,14 +47,24 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Landing />} />
-        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
-        <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <Signup />} />
+        <Route
+          path="/"
+          element={user ? <Navigate to="/dashboard" replace /> : <Landing />}
+        />
+        <Route
+          path="/login"
+          element={user ? <Navigate to="/dashboard" replace /> : <Login />}
+        />
+        <Route
+          path="/signup"
+          element={user ? <Navigate to="/dashboard" replace /> : <Signup />}
+        />
+
         <Route
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <AppLayout userId={user!.id} />
+              {user && <AppLayout userId={user.id} />}
             </ProtectedRoute>
           }
         />
@@ -60,9 +72,11 @@ function App() {
           path="/cv-builder"
           element={
             <ProtectedRoute>
-              <AppLayout userId={user!.id}>
-                <CVBuilder userId={user!.id} />
-              </AppLayout>
+              {user && (
+                <AppLayout userId={user.id}>
+                  <CVBuilder userId={user.id} />
+                </AppLayout>
+              )}
             </ProtectedRoute>
           }
         />
@@ -70,9 +84,11 @@ function App() {
           path="/cv-editor"
           element={
             <ProtectedRoute>
-              <AppLayout userId={user!.id}>
-                <CVEditor userId={user!.id} />
-              </AppLayout>
+              {user && (
+                <AppLayout userId={user.id}>
+                  <CVEditor userId={user.id} />
+                </AppLayout>
+              )}
             </ProtectedRoute>
           }
         />
@@ -80,9 +96,11 @@ function App() {
           path="/social-import"
           element={
             <ProtectedRoute>
-              <AppLayout userId={user!.id}>
-                <SocialImport userId={user!.id} />
-              </AppLayout>
+              {user && (
+                <AppLayout userId={user.id}>
+                  <SocialImport userId={user.id} />
+                </AppLayout>
+              )}
             </ProtectedRoute>
           }
         />
@@ -90,9 +108,11 @@ function App() {
           path="/job-matcher"
           element={
             <ProtectedRoute>
-              <AppLayout userId={user!.id}>
-                <JobMatcher userId={user!.id} />
-              </AppLayout>
+              {user && (
+                <AppLayout userId={user.id}>
+                  <JobMatcher userId={user.id} />
+                </AppLayout>
+              )}
             </ProtectedRoute>
           }
         />
@@ -100,9 +120,11 @@ function App() {
           path="/applications"
           element={
             <ProtectedRoute>
-              <AppLayout userId={user!.id}>
-                <ApplicationTracker userId={user!.id} />
-              </AppLayout>
+              {user && (
+                <AppLayout userId={user.id}>
+                  <ApplicationTracker userId={user.id} />
+                </AppLayout>
+              )}
             </ProtectedRoute>
           }
         />
@@ -110,9 +132,11 @@ function App() {
           path="/settings"
           element={
             <ProtectedRoute>
-              <AppLayout userId={user!.id}>
-                <Settings />
-              </AppLayout>
+              {user && (
+                <AppLayout userId={user.id}>
+                  <Settings />
+                </AppLayout>
+              )}
             </ProtectedRoute>
           }
         />
@@ -122,7 +146,13 @@ function App() {
   );
 }
 
-function AppLayout({ userId, children }: { userId: string; children?: React.ReactNode }) {
+function AppLayout({
+  userId,
+  children,
+}: {
+  userId: string;
+  children?: React.ReactNode;
+}) {
   return (
     <div className="min-h-screen bg-navy-50">
       <Navigation />
