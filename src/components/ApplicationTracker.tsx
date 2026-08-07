@@ -50,7 +50,7 @@ export default function ApplicationTracker() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-navy-900">Application Tracker</h2>
-          <p className="text-navy-600 mt-1">Manage and track all your job applications</p>
+          <p className="text-navy-600 mt-1">Track your job applications (side feature)</p>
         </div>
         <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ company: "", role: "", status: "Applied", date: new Date().toISOString().split("T")[0], notes: "", coverLetter: "", cvIndex: "" }); }} className="px-5 py-2.5 bg-navy-800 text-white font-medium rounded-lg hover:bg-navy-700 transition-colors text-sm">
           {showForm ? "Cancel" : "+ Add Application"}

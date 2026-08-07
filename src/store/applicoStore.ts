@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { Application, ApplicationStatus, CVData } from "../types";
+import { Application, ApplicationStatus, CVData, JobSuggestion } from "../types";
 
 interface ApplicoState {
   applications: Application[];
@@ -14,7 +14,9 @@ interface ApplicoState {
 
   saveCV: (cv: CVData) => void;
   setCurrentCV: (cv: CVData | null) => void;
-  deleteSavedCV: (index: number) => void;
+  deleteCV: (index: number) => void;
+  updateCV: (index: number, cv: CVData) => void;
+  setJobSuggestions: (cvIndex: number, suggestions: JobSuggestion[]) => void;
 }
 
 export const useApplicoStore = create<ApplicoState>()(
@@ -26,10 +28,7 @@ export const useApplicoStore = create<ApplicoState>()(
 
       addApplication: (application) =>
         set((state) => ({
-          applications: [
-            ...state.applications,
-            { ...application, id: crypto.randomUUID() },
-          ],
+          applications: [...state.applications, { ...application, id: crypto.randomUUID() }],
         })),
 
       updateApplication: (id, updates) =>
@@ -58,13 +57,27 @@ export const useApplicoStore = create<ApplicoState>()(
 
       setCurrentCV: (cv) => set({ currentCV: cv }),
 
-      deleteSavedCV: (index) =>
+      deleteCV: (index) =>
         set((state) => ({
           savedCVs: state.savedCVs.filter((_, i) => i !== index),
         })),
+
+      updateCV: (index, cv) =>
+        set((state) => {
+          const updated = [...state.savedCVs];
+          updated[index] = cv;
+          return { savedCVs: updated, currentCV: cv };
+        }),
+
+      setJobSuggestions: (cvIndex, suggestions) =>
+        set((state) => {
+          const updated = [...state.savedCVs];
+          if (updated[cvIndex]) {
+            updated[cvIndex] = { ...updated[cvIndex], aiSuggestions: suggestions };
+          }
+          return { savedCVs: updated };
+        }),
     }),
-    {
-      name: "applico-storage",
-    }
+    { name: "applico-storage" }
   )
 );

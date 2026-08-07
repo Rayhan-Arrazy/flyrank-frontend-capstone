@@ -14,6 +14,21 @@ export interface CVEducation {
   endDate: string;
 }
 
+export interface JobSuggestion {
+  jobTitle: string;
+  company: string;
+  matchScore: number;
+  reason: string;
+  location: string;
+  salary: string;
+}
+
+export interface ImportedLinks {
+  linkedin?: string;
+  github?: string;
+  social?: string[];
+}
+
 export interface CVData {
   fullName: string;
   email: string;
@@ -27,6 +42,8 @@ export interface CVData {
   education: CVEducation[];
   summary: string;
   rawText: string;
+  importedFrom: ImportedLinks;
+  aiSuggestions: JobSuggestion[];
 }
 
 export type ApplicationStatus = "Applied" | "Interviewing" | "Offer" | "Rejected";

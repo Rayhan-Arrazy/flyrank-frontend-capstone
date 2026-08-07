@@ -12,8 +12,11 @@ export default function Navigation() {
 
   const links = [
     { to: "/", label: "Dashboard" },
+    { to: "/cv-builder", label: "CV Builder" },
+    { to: "/cv-editor", label: "CV Editor" },
+    { to: "/social-import", label: "Import" },
+    { to: "/job-matcher", label: "Job Matcher" },
     { to: "/applications", label: "Applications" },
-    { to: "/cv-manager", label: "CV Manager" },
     { to: "/settings", label: "Settings" },
   ];
 
@@ -29,12 +32,12 @@ export default function Navigation() {
           <span className="text-xl font-bold text-navy-900">Applico</span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-1">
+        <div className="hidden lg:flex items-center gap-1">
           {links.map((link) => (
             <Link
               key={link.to}
               to={link.to}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                 isActive(link.to) ? "bg-navy-800 text-white" : "text-navy-700 hover:bg-navy-50"
               }`}
             >
@@ -43,10 +46,7 @@ export default function Navigation() {
           ))}
         </div>
 
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="md:hidden p-2 text-navy-700 hover:bg-navy-50 rounded-lg"
-        >
+        <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden p-2 text-navy-700 hover:bg-navy-50 rounded-lg">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             {mobileOpen ? (
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -58,7 +58,7 @@ export default function Navigation() {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden border-t border-navy-100 bg-white">
+        <div className="lg:hidden border-t border-navy-100 bg-white">
           <div className="px-6 py-3 space-y-1">
             {links.map((link) => (
               <Link
