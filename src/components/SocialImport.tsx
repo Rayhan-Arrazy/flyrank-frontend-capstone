@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { useApplicoStore } from "../store/applicoStore";
+import { supabase } from "../lib/supabase";
 import { CVData } from "../types";
 
-export default function SocialImport() {
-  const { saveCV } = useApplicoStore();
+export default function SocialImport({ userId }: { userId: string }) {
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [githubUrl, setGithubUrl] = useState("");
   const [socialUrls, setSocialUrls] = useState<string[]>([""]);
@@ -96,13 +95,30 @@ export default function SocialImport() {
     }
   };
 
-  const handleSave = () => {
-    if (importedData) {
-      saveCV(importedData);
+  const handleSave = async () => {
+    if (!importedData) return;
+    try {
+      const { error } = await supabase.from("cvs").insert({
+        user_id: userId,
+        full_name: importedData.fullName,
+        email: importedData.email,
+        phone: importedData.phone,
+        location: importedData.location,
+        linkedin: importedData.linkedin,
+        github: importedData.github,
+        portfolio: importedData.portfolio,
+        skills: importedData.skills,
+        experience: importedData.experience,
+        education: importedData.education,
+        summary: importedData.summary,
+      });
+      if (error) throw error;
       setImportedData(null);
       setLinkedinUrl("");
       setGithubUrl("");
       setSocialUrls([""]);
+    } catch {
+      // silent
     }
   };
 

@@ -1,24 +1,61 @@
-import { useApplicoStore } from "../store/applicoStore";
+import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 
 export default function Settings() {
-  const { applications, savedCVs, currentCV, setCurrentCV } = useApplicoStore();
+  const [counts, setCounts] = useState({ applications: 0, cvs: 0 });
+  const [loading, setLoading] = useState(true);
 
-  const handleClearData = () => {
-    if (confirm("Are you sure you want to clear all data? This cannot be undone.")) {
-      localStorage.removeItem("applico-storage");
+  useEffect(() => {
+    loadCounts();
+  }, []);
+
+  const loadCounts = async () => {
+    try {
+      const [appsRes, cvsRes] = await Promise.all([
+        supabase.from("applications").select("id", { count: "exact" }),
+        supabase.from("cvs").select("id", { count: "exact" }),
+      ]);
+      setCounts({
+        applications: appsRes.count || 0,
+        cvs: cvsRes.count || 0,
+      });
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleClearData = async () => {
+    if (!confirm("Are you sure you want to clear all data? This cannot be undone.")) return;
+    try {
+      await supabase.from("applications").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabase.from("job_suggestions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabase.from("cvs").delete().neq("id", "00000000-0000-0000-0000-000000000000");
       window.location.reload();
+    } catch {
+      // silent
     }
   };
 
-  const handleExportData = () => {
-    const data = { applications, savedCVs, currentCV };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "applico-data.json";
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleExportData = async () => {
+    try {
+      const [apps, cvs, sugg] = await Promise.all([
+        supabase.from("applications").select("*"),
+        supabase.from("cvs").select("*"),
+        supabase.from("job_suggestions").select("*"),
+      ]);
+      const data = { applications: apps.data, cvs: cvs.data, job_suggestions: sugg.data };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "applico-data.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // silent
+    }
   };
 
   return (
@@ -31,22 +68,13 @@ export default function Settings() {
       <div className="bg-white rounded-xl shadow-sm border border-navy-100 p-6 space-y-6">
         <section className="space-y-3">
           <h3 className="text-lg font-semibold text-navy-900">Data Summary</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 bg-navy-50 rounded-lg"><p className="text-2xl font-bold text-navy-900">{applications.length}</p><p className="text-sm text-navy-600">Applications</p></div>
-            <div className="p-4 bg-navy-50 rounded-lg"><p className="text-2xl font-bold text-navy-900">{savedCVs.length}</p><p className="text-sm text-navy-600">Saved CVs</p></div>
-            <div className="p-4 bg-navy-50 rounded-lg"><p className="text-2xl font-bold text-navy-900">{currentCV ? "1" : "0"}</p><p className="text-sm text-navy-600">Active CV</p></div>
-          </div>
-        </section>
-
-        <section className="space-y-3">
-          <h3 className="text-lg font-semibold text-navy-900">Current CV</h3>
-          {currentCV ? (
-            <div className="p-4 border border-navy-100 rounded-lg flex items-center justify-between">
-              <div><p className="text-sm font-medium text-navy-900">{currentCV.fullName || "Untitled"}</p><p className="text-xs text-navy-500">{currentCV.email}</p></div>
-              <button onClick={() => setCurrentCV(null)} className="text-xs text-red-600 hover:text-red-800">Clear</button>
-            </div>
+          {loading ? (
+            <p className="text-sm text-navy-400">Loading...</p>
           ) : (
-            <p className="text-sm text-navy-500">No active CV set</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 bg-navy-50 rounded-lg"><p className="text-2xl font-bold text-navy-900">{counts.applications}</p><p className="text-sm text-navy-600">Applications</p></div>
+              <div className="p-4 bg-navy-50 rounded-lg"><p className="text-2xl font-bold text-navy-900">{counts.cvs}</p><p className="text-sm text-navy-600">Saved CVs</p></div>
+            </div>
           )}
         </section>
 

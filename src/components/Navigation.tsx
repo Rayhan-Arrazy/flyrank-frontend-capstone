@@ -1,9 +1,23 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { supabase } from "../lib/supabase";
 
 export default function Navigation() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await supabase.auth.signOut();
+      localStorage.removeItem("applico-storage");
+    } catch {
+      localStorage.removeItem("applico-storage");
+      window.location.reload();
+    }
+  };
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -44,6 +58,12 @@ export default function Navigation() {
               {link.label}
             </Link>
           ))}
+          <button
+            onClick={() => setShowLogoutConfirm(true)}
+            className="ml-2 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            Logout
+          </button>
         </div>
 
         <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden p-2 text-navy-700 hover:bg-navy-50 rounded-lg">
@@ -72,6 +92,37 @@ export default function Navigation() {
                 {link.label}
               </Link>
             ))}
+            <button
+              onClick={() => setShowLogoutConfirm(true)}
+              className="block w-full text-left px-4 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm mx-4 space-y-4">
+            <h3 className="text-lg font-semibold text-navy-900">Logout</h3>
+            <p className="text-sm text-navy-600">You will be signed out and redirected to the login screen.</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="px-4 py-2 text-sm font-medium text-navy-700 bg-navy-50 rounded-lg hover:bg-navy-100 transition-colors"
+                disabled={loggingOut}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {loggingOut ? "Signing out..." : "Yes, Logout"}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useApplicoStore } from "../store/applicoStore";
+import { supabase } from "../lib/supabase";
 import { CVData, CVExperience, CVEducation } from "../types";
 
 const emptyCV: CVData = {
@@ -19,12 +19,13 @@ const emptyCV: CVData = {
   aiSuggestions: [],
 };
 
-export default function CVBuilder() {
-  const { saveCV } = useApplicoStore();
+export default function CVBuilder({ userId }: { userId: string }) {
   const [cv, setCv] = useState<CVData>(emptyCV);
   const [showATS, setShowATS] = useState(false);
   const [skillInput, setSkillInput] = useState("");
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
   const updateField = <K extends keyof CVData>(field: K, value: CVData[K]) => {
     setCv((prev) => ({ ...prev, [field]: value }));
@@ -70,10 +71,33 @@ export default function CVBuilder() {
     updateField("education", cv.education.filter((_, i) => i !== index));
   };
 
-  const handleSave = () => {
-    saveCV(cv);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleSave = async () => {
+    setSaving(true);
+    setError("");
+    setSaved(false);
+    try {
+      const { error: insertError } = await supabase.from("cvs").insert({
+        user_id: userId,
+        full_name: cv.fullName,
+        email: cv.email,
+        phone: cv.phone,
+        location: cv.location,
+        linkedin: cv.linkedin,
+        github: cv.github,
+        portfolio: cv.portfolio,
+        skills: cv.skills,
+        experience: cv.experience,
+        education: cv.education,
+        summary: cv.summary,
+      });
+      if (insertError) throw insertError;
+      setSaved(true);
+      setCv(emptyCV);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save CV");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const completionScore = calculateCompletion(cv);
@@ -95,11 +119,14 @@ export default function CVBuilder() {
           <button onClick={() => setShowATS(!showATS)} className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${showATS ? "bg-navy-800 text-white" : "bg-navy-50 text-navy-700 hover:bg-navy-100"}`}>
             {showATS ? "Hide ATS" : "ATS View"}
           </button>
-          <button onClick={handleSave} className="px-5 py-2 bg-navy-800 text-white font-medium rounded-lg hover:bg-navy-700 transition-colors text-sm">
-            {saved ? "Saved!" : "Save CV"}
+          <button onClick={handleSave} disabled={saving} className="px-5 py-2 bg-navy-800 text-white font-medium rounded-lg hover:bg-navy-700 disabled:opacity-50 transition-colors text-sm">
+            {saving ? "Saving..." : saved ? "Saved!" : "Save CV"}
           </button>
         </div>
       </div>
+
+      {error && <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">{error}</div>}
+      {saved && !error && <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-green-700 text-sm">CV saved successfully!</div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-navy-100 p-6 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
@@ -126,8 +153,7 @@ export default function CVBuilder() {
             <div className="flex flex-wrap gap-2">
               {cv.skills.map((skill, i) => (
                 <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-navy-100 text-navy-700 text-xs font-medium rounded-full">
-                  {skill}
-                  <button onClick={() => removeSkill(i)} className="text-navy-400 hover:text-navy-700">&times;</button>
+                  {skill}<button onClick={() => removeSkill(i)} className="text-navy-400 hover:text-navy-700">&times;</button>
                 </span>
               ))}
             </div>
@@ -136,19 +162,16 @@ export default function CVBuilder() {
           <Section title="Experience" action={<button onClick={addExperience} className="text-xs font-medium text-navy-600 hover:text-navy-800">+ Add Experience</button>}>
             {cv.experience.map((exp, i) => (
               <div key={i} className="p-3 border border-navy-100 rounded-lg space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-navy-500 font-medium">Position {i + 1}</span>
-                  <button onClick={() => removeExperience(i)} className="text-xs text-red-500 hover:text-red-700">Remove</button>
-                </div>
+                <div className="flex justify-between items-center"><span className="text-xs text-navy-500 font-medium">Position {i + 1}</span><button onClick={() => removeExperience(i)} className="text-xs text-red-500 hover:text-red-700">Remove</button></div>
                 <div className="grid grid-cols-2 gap-2">
                   <input type="text" value={exp.role} onChange={(e) => updateExperience(i, "role", e.target.value)} placeholder="Job Title" className="px-3 py-1.5 border border-navy-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300" />
                   <input type="text" value={exp.company} onChange={(e) => updateExperience(i, "company", e.target.value)} placeholder="Company" className="px-3 py-1.5 border border-navy-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300" />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <input type="text" value={exp.startDate} onChange={(e) => updateExperience(i, "startDate", e.target.value)} placeholder="Start (e.g. Jan 2020)" className="px-3 py-1.5 border border-navy-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300" />
-                  <input type="text" value={exp.endDate} onChange={(e) => updateExperience(i, "endDate", e.target.value)} placeholder="End (e.g. Present)" className="px-3 py-1.5 border border-navy-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300" />
+                  <input type="text" value={exp.startDate} onChange={(e) => updateExperience(i, "startDate", e.target.value)} placeholder="Start" className="px-3 py-1.5 border border-navy-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300" />
+                  <input type="text" value={exp.endDate} onChange={(e) => updateExperience(i, "endDate", e.target.value)} placeholder="End" className="px-3 py-1.5 border border-navy-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300" />
                 </div>
-                <textarea value={exp.description} onChange={(e) => updateExperience(i, "description", e.target.value)} placeholder="Describe your responsibilities and achievements..." rows={2} className="w-full px-3 py-1.5 border border-navy-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300 resize-y" />
+                <textarea value={exp.description} onChange={(e) => updateExperience(i, "description", e.target.value)} placeholder="Description" rows={2} className="w-full px-3 py-1.5 border border-navy-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300 resize-y" />
               </div>
             ))}
           </Section>
@@ -156,18 +179,15 @@ export default function CVBuilder() {
           <Section title="Education" action={<button onClick={addEducation} className="text-xs font-medium text-navy-600 hover:text-navy-800">+ Add Education</button>}>
             {cv.education.map((edu, i) => (
               <div key={i} className="p-3 border border-navy-100 rounded-lg space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-navy-500 font-medium">Education {i + 1}</span>
-                  <button onClick={() => removeEducation(i)} className="text-xs text-red-500 hover:text-red-700">Remove</button>
-                </div>
+                <div className="flex justify-between items-center"><span className="text-xs text-navy-500 font-medium">Education {i + 1}</span><button onClick={() => removeEducation(i)} className="text-xs text-red-500 hover:text-red-700">Remove</button></div>
                 <input type="text" value={edu.institution} onChange={(e) => updateEducation(i, "institution", e.target.value)} placeholder="Institution" className="w-full px-3 py-1.5 border border-navy-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300" />
                 <div className="grid grid-cols-2 gap-2">
                   <input type="text" value={edu.degree} onChange={(e) => updateEducation(i, "degree", e.target.value)} placeholder="Degree" className="px-3 py-1.5 border border-navy-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300" />
-                  <input type="text" value={edu.field} onChange={(e) => updateEducation(i, "field", e.target.value)} placeholder="Field of Study" className="px-3 py-1.5 border border-navy-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300" />
+                  <input type="text" value={edu.field} onChange={(e) => updateEducation(i, "field", e.target.value)} placeholder="Field" className="px-3 py-1.5 border border-navy-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300" />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <input type="text" value={edu.startDate} onChange={(e) => updateEducation(i, "startDate", e.target.value)} placeholder="Start Year" className="px-3 py-1.5 border border-navy-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300" />
-                  <input type="text" value={edu.endDate} onChange={(e) => updateEducation(i, "endDate", e.target.value)} placeholder="End Year" className="px-3 py-1.5 border border-navy-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300" />
+                  <input type="text" value={edu.startDate} onChange={(e) => updateEducation(i, "startDate", e.target.value)} placeholder="Start" className="px-3 py-1.5 border border-navy-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300" />
+                  <input type="text" value={edu.endDate} onChange={(e) => updateEducation(i, "endDate", e.target.value)} placeholder="End" className="px-3 py-1.5 border border-navy-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300" />
                 </div>
               </div>
             ))}
@@ -175,9 +195,7 @@ export default function CVBuilder() {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-navy-100 p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
-          <h3 className="text-sm font-semibold text-navy-800 uppercase tracking-wide mb-4">
-            {showATS ? "ATS-Friendly Preview" : "Live Preview"}
-          </h3>
+          <h3 className="text-sm font-semibold text-navy-800 uppercase tracking-wide mb-4">{showATS ? "ATS-Friendly Preview" : "Live Preview"}</h3>
           {showATS ? (
             <pre className="text-xs text-navy-800 whitespace-pre-wrap font-mono leading-relaxed">{formatATS(cv)}</pre>
           ) : (
@@ -203,10 +221,7 @@ function Section({ title, action, children }: { title: string; action?: React.Re
 
 function Input({ label, value, onChange, placeholder, type = "text" }: { label: string; value: string; onChange: (v: string) => void; placeholder: string; type?: string }) {
   return (
-    <div>
-      <label className="block text-xs font-medium text-navy-600 mb-1">{label}</label>
-      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full px-3 py-2 border border-navy-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300" />
-    </div>
+    <div><label className="block text-xs font-medium text-navy-600 mb-1">{label}</label><input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full px-3 py-2 border border-navy-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 text-navy-900 placeholder-navy-300" /></div>
   );
 }
 
@@ -218,49 +233,10 @@ function CVPreview({ cv }: { cv: CVData }) {
         <p className="text-sm text-navy-600 mt-1">{[cv.email, cv.phone, cv.location].filter(Boolean).join(" | ")}</p>
         <p className="text-xs text-navy-500 mt-1">{[cv.linkedin, cv.github, cv.portfolio].filter(Boolean).join(" | ")}</p>
       </div>
-      {cv.summary && (
-        <div>
-          <h4 className="text-xs font-bold text-navy-800 uppercase tracking-wide mb-1">Summary</h4>
-          <p className="text-sm text-navy-700">{cv.summary}</p>
-        </div>
-      )}
-      {cv.skills.length > 0 && (
-        <div>
-          <h4 className="text-xs font-bold text-navy-800 uppercase tracking-wide mb-1">Skills</h4>
-          <div className="flex flex-wrap gap-1.5">
-            {cv.skills.map((skill, i) => (
-              <span key={i} className="px-2 py-0.5 bg-navy-100 text-navy-700 text-xs rounded">{skill}</span>
-            ))}
-          </div>
-        </div>
-      )}
-      {cv.experience.length > 0 && (
-        <div>
-          <h4 className="text-xs font-bold text-navy-800 uppercase tracking-wide mb-2">Experience</h4>
-          <div className="space-y-3">
-            {cv.experience.map((exp, i) => (
-              <div key={i}>
-                <p className="text-sm font-semibold text-navy-900">{exp.role || "Role"}</p>
-                <p className="text-xs text-navy-600">{exp.company} | {exp.startDate} - {exp.endDate}</p>
-                {exp.description && <p className="text-xs text-navy-600 mt-1">{exp.description}</p>}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      {cv.education.length > 0 && (
-        <div>
-          <h4 className="text-xs font-bold text-navy-800 uppercase tracking-wide mb-2">Education</h4>
-          <div className="space-y-2">
-            {cv.education.map((edu, i) => (
-              <div key={i}>
-                <p className="text-sm font-semibold text-navy-900">{edu.degree} {edu.field && `in ${edu.field}`}</p>
-                <p className="text-xs text-navy-600">{edu.institution} | {edu.startDate} - {edu.endDate}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {cv.summary && <div><h4 className="text-xs font-bold text-navy-800 uppercase tracking-wide mb-1">Summary</h4><p className="text-sm text-navy-700">{cv.summary}</p></div>}
+      {cv.skills.length > 0 && <div><h4 className="text-xs font-bold text-navy-800 uppercase tracking-wide mb-1">Skills</h4><div className="flex flex-wrap gap-1.5">{cv.skills.map((s, i) => <span key={i} className="px-2 py-0.5 bg-navy-100 text-navy-700 text-xs rounded">{s}</span>)}</div></div>}
+      {cv.experience.length > 0 && <div><h4 className="text-xs font-bold text-navy-800 uppercase tracking-wide mb-2">Experience</h4><div className="space-y-3">{cv.experience.map((exp, i) => <div key={i}><p className="text-sm font-semibold text-navy-900">{exp.role || "Role"}</p><p className="text-xs text-navy-600">{exp.company} | {exp.startDate} - {exp.endDate}</p>{exp.description && <p className="text-xs text-navy-600 mt-1">{exp.description}</p>}</div>)}</div></div>}
+      {cv.education.length > 0 && <div><h4 className="text-xs font-bold text-navy-800 uppercase tracking-wide mb-2">Education</h4><div className="space-y-2">{cv.education.map((edu, i) => <div key={i}><p className="text-sm font-semibold text-navy-900">{edu.degree} {edu.field && `in ${edu.field}`}</p><p className="text-xs text-navy-600">{edu.institution} | {edu.startDate} - {edu.endDate}</p></div>)}</div></div>}
     </div>
   );
 }
@@ -273,23 +249,8 @@ function formatATS(cv: CVData): string {
   lines.push("");
   if (cv.summary) { lines.push("PROFESSIONAL SUMMARY"); lines.push(cv.summary); lines.push(""); }
   if (cv.skills.length > 0) { lines.push("SKILLS"); lines.push(cv.skills.join(", ")); lines.push(""); }
-  if (cv.experience.length > 0) {
-    lines.push("EXPERIENCE");
-    cv.experience.forEach((exp) => {
-      lines.push(`${exp.role} - ${exp.company}`);
-      lines.push(`${exp.startDate} - ${exp.endDate}`);
-      if (exp.description) lines.push(exp.description);
-      lines.push("");
-    });
-  }
-  if (cv.education.length > 0) {
-    lines.push("EDUCATION");
-    cv.education.forEach((edu) => {
-      lines.push(`${edu.degree} in ${edu.field} - ${edu.institution}`);
-      lines.push(`${edu.startDate} - ${edu.endDate}`);
-      lines.push("");
-    });
-  }
+  if (cv.experience.length > 0) { lines.push("EXPERIENCE"); cv.experience.forEach((exp) => { lines.push(`${exp.role} - ${exp.company}`); lines.push(`${exp.startDate} - ${exp.endDate}`); if (exp.description) lines.push(exp.description); lines.push(""); }); }
+  if (cv.education.length > 0) { lines.push("EDUCATION"); cv.education.forEach((edu) => { lines.push(`${edu.degree} in ${edu.field} - ${edu.institution}`); lines.push(`${edu.startDate} - ${edu.endDate}`); lines.push(""); }); }
   return lines.join("\n");
 }
 
@@ -298,11 +259,10 @@ function calculateCompletion(cv: CVData): number {
   if (cv.fullName) score += 15;
   if (cv.email) score += 10;
   if (cv.phone) score += 5;
-  if (cv.location) score += 5;
   if (cv.summary) score += 15;
   if (cv.skills.length > 0) score += 15;
   if (cv.experience.length > 0) score += 20;
   if (cv.education.length > 0) score += 10;
-  if (cv.linkedin || cv.github) score += 5;
+  if (cv.linkedin || cv.github) score += 10;
   return Math.min(score, 100);
 }

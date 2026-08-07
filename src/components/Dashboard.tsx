@@ -1,20 +1,79 @@
-import { useApplicoStore } from "../store/applicoStore";
+import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 import { Link } from "react-router-dom";
 
-export default function Dashboard() {
-  const { currentCV, savedCVs, applications } = useApplicoStore();
+interface Application {
+  id: string;
+  company: string;
+  role: string;
+  status: "Applied" | "Interviewing" | "Offer" | "Rejected";
+  date: string;
+  notes: string;
+  cv_id: string | null;
+}
 
-  const cvCount = savedCVs.length + (currentCV ? 1 : 0);
-  const totalSkills = currentCV ? currentCV.skills.length : 0;
-  const totalExperience = currentCV ? currentCV.experience.length : 0;
-  const completionScore = currentCV ? calculateCompletion(currentCV) : 0;
+interface CV {
+  id: string;
+  full_name: string;
+  email: string;
+  skills: string[];
+  experience: unknown[];
+}
 
-  const allSuggestions = [
-    ...(currentCV?.aiSuggestions || []),
-    ...savedCVs.flatMap((cv) => cv.aiSuggestions || []),
-  ].sort((a, b) => b.matchScore - a.matchScore);
+export default function Dashboard({ userId }: { userId: string }) {
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [cv, setCv] = useState<CV | null>(null);
+  const [suggestions, setSuggestions] = useState<Array<{ job_title: string; company: string; match_score: number }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const topSuggestions = allSuggestions.slice(0, 3);
+  useEffect(() => {
+    if (!userId) return;
+    loadData();
+  }, [userId]);
+
+  const loadData = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [appsRes, cvsRes, suggRes] = await Promise.all([
+        supabase.from("applications").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
+        supabase.from("cvs").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(1),
+        supabase.from("job_suggestions").select("job_title, company, match_score").eq("user_id", userId).order("match_score", { ascending: false }).limit(3),
+      ]);
+
+      if (appsRes.error) throw appsRes.error;
+      if (cvsRes.error) throw cvsRes.error;
+      if (suggRes.error) throw suggRes.error;
+
+      setApplications(appsRes.data || []);
+      setCv(cvsRes.data?.[0] || null);
+      setSuggestions(suggRes.data || []);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <svg className="animate-spin h-8 w-8 text-navy-600" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
+        {error}
+      </div>
+    );
+  }
 
   const appCounts = {
     Applied: applications.filter((a) => a.status === "Applied").length,
@@ -23,6 +82,8 @@ export default function Dashboard() {
     Rejected: applications.filter((a) => a.status === "Rejected").length,
   };
 
+  const completionScore = cv ? calculateCompletion(cv) : 0;
+
   return (
     <div className="space-y-8">
       <div>
@@ -30,7 +91,7 @@ export default function Dashboard() {
         <p className="text-navy-600 mt-1">Build your CV and find your next opportunity</p>
       </div>
 
-      {currentCV && (
+      {cv && (
         <div className="bg-white rounded-xl shadow-sm border border-navy-100 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-navy-900">Your CV</h3>
@@ -42,16 +103,16 @@ export default function Dashboard() {
               <p className="text-xs text-navy-600">Complete</p>
             </div>
             <div className="p-3 bg-navy-50 rounded-lg text-center">
-              <p className="text-2xl font-bold text-navy-900">{totalSkills}</p>
+              <p className="text-2xl font-bold text-navy-900">{cv.skills?.length || 0}</p>
               <p className="text-xs text-navy-600">Skills</p>
             </div>
             <div className="p-3 bg-navy-50 rounded-lg text-center">
-              <p className="text-2xl font-bold text-navy-900">{totalExperience}</p>
+              <p className="text-2xl font-bold text-navy-900">{Array.isArray(cv.experience) ? cv.experience.length : 0}</p>
               <p className="text-xs text-navy-600">Experiences</p>
             </div>
             <div className="p-3 bg-navy-50 rounded-lg text-center">
-              <p className="text-2xl font-bold text-navy-900">{cvCount}</p>
-              <p className="text-xs text-navy-600">Saved CVs</p>
+              <p className="text-2xl font-bold text-navy-900">{applications.length}</p>
+              <p className="text-xs text-navy-600">Applications</p>
             </div>
           </div>
         </div>
@@ -59,9 +120,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-navy-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-navy-900">Quick Actions</h3>
-          </div>
+          <h3 className="text-lg font-semibold text-navy-900 mb-4">Quick Actions</h3>
           <div className="space-y-3">
             <Link to="/cv-builder" className="flex items-center gap-3 p-4 rounded-lg border border-navy-100 hover:bg-navy-50 transition-colors group">
               <div className="w-10 h-10 rounded-lg bg-navy-800 flex items-center justify-center flex-shrink-0">
@@ -91,21 +150,21 @@ export default function Dashboard() {
         </div>
 
         <div className="space-y-6">
-          {topSuggestions.length > 0 && (
+          {suggestions.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm border border-navy-100 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-navy-900">Top Job Matches</h3>
                 <Link to="/job-matcher" className="text-sm font-medium text-navy-600 hover:text-navy-800 transition-colors">View all &rarr;</Link>
               </div>
               <div className="space-y-3">
-                {topSuggestions.map((job, i) => (
+                {suggestions.map((job, i) => (
                   <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-navy-50 transition-colors">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-navy-900 truncate">{job.jobTitle}</p>
+                      <p className="text-sm font-medium text-navy-900 truncate">{job.job_title}</p>
                       <p className="text-xs text-navy-500">{job.company}</p>
                     </div>
-                    <span className={`ml-3 px-2 py-0.5 text-xs font-medium rounded-full flex-shrink-0 ${job.matchScore >= 90 ? "bg-green-100 text-green-800" : job.matchScore >= 75 ? "bg-yellow-100 text-yellow-800" : "bg-orange-100 text-orange-800"}`}>
-                      {job.matchScore}%
+                    <span className={`ml-3 px-2 py-0.5 text-xs font-medium rounded-full flex-shrink-0 ${job.match_score >= 90 ? "bg-green-100 text-green-800" : job.match_score >= 75 ? "bg-yellow-100 text-yellow-800" : "bg-orange-100 text-orange-800"}`}>
+                      {job.match_score}%
                     </span>
                   </div>
                 ))}
@@ -119,22 +178,10 @@ export default function Dashboard() {
               <Link to="/applications" className="text-sm font-medium text-navy-600 hover:text-navy-800 transition-colors">View all &rarr;</Link>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-blue-50 rounded-lg text-center">
-                <p className="text-xl font-bold text-blue-800">{appCounts.Applied}</p>
-                <p className="text-xs text-blue-600">Applied</p>
-              </div>
-              <div className="p-3 bg-yellow-50 rounded-lg text-center">
-                <p className="text-xl font-bold text-yellow-800">{appCounts.Interviewing}</p>
-                <p className="text-xs text-yellow-600">Interviewing</p>
-              </div>
-              <div className="p-3 bg-green-50 rounded-lg text-center">
-                <p className="text-xl font-bold text-green-800">{appCounts.Offer}</p>
-                <p className="text-xs text-green-600">Offers</p>
-              </div>
-              <div className="p-3 bg-red-50 rounded-lg text-center">
-                <p className="text-xl font-bold text-red-800">{appCounts.Rejected}</p>
-                <p className="text-xs text-red-600">Rejected</p>
-              </div>
+              <div className="p-3 bg-blue-50 rounded-lg text-center"><p className="text-xl font-bold text-blue-800">{appCounts.Applied}</p><p className="text-xs text-blue-600">Applied</p></div>
+              <div className="p-3 bg-yellow-50 rounded-lg text-center"><p className="text-xl font-bold text-yellow-800">{appCounts.Interviewing}</p><p className="text-xs text-yellow-600">Interviewing</p></div>
+              <div className="p-3 bg-green-50 rounded-lg text-center"><p className="text-xl font-bold text-green-800">{appCounts.Offer}</p><p className="text-xs text-green-600">Offers</p></div>
+              <div className="p-3 bg-red-50 rounded-lg text-center"><p className="text-xl font-bold text-red-800">{appCounts.Rejected}</p><p className="text-xs text-red-600">Rejected</p></div>
             </div>
           </div>
         </div>
@@ -143,15 +190,15 @@ export default function Dashboard() {
   );
 }
 
-function calculateCompletion(cv: { fullName: string; email: string; phone: string; summary: string; skills: string[]; experience: unknown[]; education: unknown[]; linkedin: string; github: string }): number {
+function calculateCompletion(cv: { full_name?: string; email?: string; phone?: string; summary?: string; skills?: string[]; experience?: unknown[]; education?: unknown[]; linkedin?: string; github?: string }): number {
   let score = 0;
-  if (cv.fullName) score += 15;
+  if (cv.full_name) score += 15;
   if (cv.email) score += 10;
   if (cv.phone) score += 5;
   if (cv.summary) score += 15;
-  if (cv.skills.length > 0) score += 15;
-  if (cv.experience.length > 0) score += 20;
-  if (cv.education.length > 0) score += 10;
+  if (cv.skills && cv.skills.length > 0) score += 15;
+  if (cv.experience && Array.isArray(cv.experience) && cv.experience.length > 0) score += 20;
+  if (cv.education && Array.isArray(cv.education) && cv.education.length > 0) score += 10;
   if (cv.linkedin || cv.github) score += 10;
   return Math.min(score, 100);
 }
