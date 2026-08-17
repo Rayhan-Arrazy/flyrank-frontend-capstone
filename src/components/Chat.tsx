@@ -58,6 +58,10 @@ export default function Chat() {
         signal: abortControllerRef.current.signal,
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
 
@@ -95,7 +99,7 @@ export default function Chat() {
           const updated = [...prev];
           const last = updated[updated.length - 1];
           if (last.role === "assistant") {
-            last.content = "Sorry, something went wrong. Please try again.";
+            last.content = `Error: ${error.message || "Something went wrong. Please try again."}`;
           }
           return updated;
         });
