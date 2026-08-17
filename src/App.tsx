@@ -13,6 +13,8 @@ import Settings from "./components/Settings";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import Chat from "./components/Chat";
+import FloatingChat from "./components/FloatingChat";
 
 function App() {
   const [user, setUser] = useState<{ id: string } | null>(null);
@@ -140,8 +142,21 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute>
+              {user && (
+                <AppLayout userId={user.id}>
+                  <Chat />
+                </AppLayout>
+              )}
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <FloatingChat />
     </BrowserRouter>
   );
 }
