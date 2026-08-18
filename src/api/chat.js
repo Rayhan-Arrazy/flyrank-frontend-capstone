@@ -1,36 +1,42 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import dotenv from "dotenv";
+import { streamChat } from "../src/api/chat.js";
 
-dotenv.config();
+export default async function handler(req, res) {
+  // Enable CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-const apiKey = process.env.GEMINI_API_KEY;
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
 
-if (!apiKey) {
-  console.error("Missing GEMINI_API_KEY in environment");
-}
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
-const genAI = new GoogleGenerativeAI(apiKey);
+  try {
+    const { message, history } = req.body;
 
-export async function streamChat(message, history) {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    if (!message) {
+      return res.status(400).json({ error: "Message is required" });
+    }
 
-  const chat = model.startChat({
-    history: history.map((msg) => ({
-      role: msg.role === "user" ? "user" : "model",
-      parts: [{ text: msg.content }],
-    })),
-  });
+    const stream = await streamChat(message, history || []);
 
-  const result = await chat.sendMessageStream(message);
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
 
-  const stream = new ReadableStream({
-    async start(controller) {
-      for await (const chunk of result.stream) {
-        controller.enqueue(chunk.text());
-      }
-      controller.close();
-    },
-  });
-
-  return stream;
+    const reader = stream.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      res.write(`data: ${value}\n\n`);
+    }
+    res.write("data: [DONE]\n\n");
+    res.end();
+  } catch (error) {
+    console.error("Chat error:", error);
+    res.status(500).json({ error: error.message });
+  }
 }
