@@ -1,17 +1,17 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from "dotenv";
+
 dotenv.config();
 
-// Use process.env instead of import.meta.env
 const apiKey = process.env.GEMINI_API_KEY;
 
 if (!apiKey) {
-  throw new Error("GEMINI_API_KEY is missing in environment variables");
+  console.error("Missing GEMINI_API_KEY in environment");
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
 
-export async function streamChat(message: string, history: any[]) {
+export async function streamChat(message, history) {
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const chat = model.startChat({
