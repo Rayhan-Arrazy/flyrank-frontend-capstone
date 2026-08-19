@@ -69,7 +69,7 @@ export async function fetchApplications(userId: string) {
 
 export async function insertApplication(
   userId: string,
-  application: Record<string, unknown>
+  application: Record<string, unknown>,
 ) {
   const { data, error } = await supabase
     .from("applications")
@@ -82,7 +82,7 @@ export async function insertApplication(
 
 export async function updateApplication(
   appId: string,
-  updates: Record<string, unknown>
+  updates: Record<string, unknown>,
 ) {
   const { data, error } = await supabase
     .from("applications")
@@ -122,7 +122,7 @@ export async function fetchJobSuggestions(userId: string, cvId?: string) {
 export async function insertJobSuggestions(
   userId: string,
   cvId: string,
-  suggestions: Array<Record<string, unknown>>
+  suggestions: Array<Record<string, unknown>>,
 ) {
   const rows = suggestions.map((s) => ({
     ...s,

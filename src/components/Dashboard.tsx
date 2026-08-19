@@ -42,14 +42,16 @@ export default function Dashboard({ userId }: { userId: string }) {
         supabase.from("job_suggestions").select("job_title, company, match_score").eq("user_id", userId).order("match_score", { ascending: false }).limit(3),
       ]);
 
-      if (appsRes.error) throw appsRes.error;
-      if (cvsRes.error) throw cvsRes.error;
-      if (suggRes.error) throw suggRes.error;
-
       setApplications(appsRes.data || []);
       setCv(cvsRes.data?.[0] || null);
       setSuggestions(suggRes.data || []);
+
+      const firstError = appsRes.error || cvsRes.error || suggRes.error;
+      if (firstError) {
+        console.error("Dashboard load warning:", firstError.message);
+      }
     } catch (err: unknown) {
+      console.error("Dashboard load error:", err);
       setError(err instanceof Error ? err.message : "Failed to load data");
     } finally {
       setLoading(false);
