@@ -123,10 +123,17 @@ export default function Chat() {
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
           <div className="text-center text-gray-400 mt-20">
-            <p>Start a conversation with AI</p>
-            <p className="text-sm">
-              Ask about your CV, job search, or anything else
+            <p className="text-lg font-medium text-gray-500">Talk to Applico AI</p>
+            <p className="text-sm mt-2">
+              Your personal career coach — get advice on CV, interviews, job search, and more
             </p>
+            <div className="mt-6 space-y-2 max-w-sm mx-auto text-left">
+              <p className="text-xs text-gray-400">Try asking:</p>
+              <button onClick={() => setInput("Review my CV and suggest improvements")} className="block w-full text-left text-xs text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors">"Review my CV and suggest improvements"</button>
+              <button onClick={() => setInput("How should I prepare for a Google interview?")} className="block w-full text-left text-xs text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors">"How should I prepare for a Google interview?"</button>
+              <button onClick={() => setInput("Help me write a cover letter for a software engineer role at Netflix")} className="block w-full text-left text-xs text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors">"Help me write a cover letter for Netflix"</button>
+              <button onClick={() => setInput("How do I negotiate my salary offer?")} className="block w-full text-left text-xs text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors">"How do I negotiate my salary offer?"</button>
+            </div>
           </div>
         )}
         {messages.map((msg) => (
