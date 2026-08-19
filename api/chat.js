@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const chat = model.startChat({
       history: (history || []).map((msg) => ({
@@ -54,6 +54,10 @@ export default async function handler(req, res) {
     res.end();
   } catch (error) {
     console.error("Chat error:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: error.message || String(error),
+      stack: error.stack,
+      name: error.name,
+    });
   }
 }
