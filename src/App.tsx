@@ -164,6 +164,7 @@ function App() {
 function ChatPage({ userId }: { userId: string }) {
   const [sessions, setSessions] = useState<Array<{ id: string; title: string; updated_at: string }>>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [showSidebar, setShowSidebar] = useState(false);
 
   const loadSessions = useCallback(async () => {
     try {
@@ -181,6 +182,7 @@ function ChatPage({ userId }: { userId: string }) {
       const session = await createChatSession(userId);
       setSessions((prev) => [session, ...prev]);
       setActiveSessionId(session.id);
+      setShowSidebar(false);
     } catch {}
   };
 
@@ -192,10 +194,37 @@ function ChatPage({ userId }: { userId: string }) {
     } catch {}
   };
 
+  const handleSelectSession = (id: string) => {
+    setActiveSessionId(id);
+    setShowSidebar(false);
+  };
+
   return (
-    <div className="flex gap-6 h-[calc(100vh-120px)]">
+    <div className="relative flex gap-4 sm:gap-6 h-[calc(100vh-120px)]">
+      {/* Mobile sidebar toggle */}
+      <button
+        onClick={() => setShowSidebar(!showSidebar)}
+        className="sm:hidden fixed bottom-20 left-4 z-30 w-10 h-10 bg-navy-800 text-white rounded-full shadow-lg flex items-center justify-center"
+        aria-label="Toggle sidebar"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
+      {/* Mobile overlay */}
+      {showSidebar && (
+        <div className="sm:hidden fixed inset-0 z-20 bg-black/30" onClick={() => setShowSidebar(false)} />
+      )}
+
       {/* Sidebar */}
-      <div className="w-64 flex-shrink-0 bg-white rounded-xl shadow-sm border border-navy-100 flex flex-col overflow-hidden">
+      <div className={`
+        ${showSidebar ? "translate-x-0" : "-translate-x-full"}
+        sm:translate-x-0
+        fixed sm:relative inset-y-0 left-0 z-20
+        w-64 flex-shrink-0 bg-white rounded-xl shadow-sm border border-navy-100 flex flex-col overflow-hidden
+        transition-transform duration-200
+      `}>
         <div className="p-3 border-b border-navy-100">
           <button onClick={handleNewChat} className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-navy-800 text-white text-sm rounded-lg hover:bg-navy-700 transition-colors">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -206,7 +235,7 @@ function ChatPage({ userId }: { userId: string }) {
           {sessions.length === 0 && <p className="text-xs text-gray-400 text-center py-4">No conversations yet</p>}
           {sessions.map((s) => (
             <div key={s.id} className="flex items-center group">
-              <button onClick={() => setActiveSessionId(s.id)} className={`flex-1 text-left px-3 py-2 rounded-lg text-sm truncate transition-colors ${activeSessionId === s.id ? "bg-navy-100 text-navy-900" : "hover:bg-gray-50 text-gray-700"}`}>
+              <button onClick={() => handleSelectSession(s.id)} className={`flex-1 text-left px-3 py-2 rounded-lg text-sm truncate transition-colors ${activeSessionId === s.id ? "bg-navy-100 text-navy-900" : "hover:bg-gray-50 text-gray-700"}`}>
                 {s.title}
               </button>
               <button onClick={() => handleDeleteSession(s.id)} className="mr-1 p-1 opacity-0 group-hover:opacity-100 hover:bg-red-50 rounded transition-all" aria-label="Delete">
