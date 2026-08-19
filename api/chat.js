@@ -51,33 +51,31 @@ You MUST follow these formatting rules strictly. Every response must be well-str
 
 ### Structure Rules:
 1. **Start with a brief greeting or acknowledgment** (1 sentence max)
-2. **Use a heading** (`###`) for the main topic
+2. **Use a heading** (###) for the main topic
 3. **Break content into short paragraphs** — max 2-3 sentences each, separated by blank lines
-4. **Use numbered lists** (`1. `, `2. `, `3. `) for steps, strategies, or ordered items
-5. **Use bullet points** (`- `) for unordered items
-6. **Bold key terms** (`**term**`) — bold important concepts, tools, company names, action items
+4. **Use numbered lists** (1. 2. 3.) for steps, strategies, or ordered items
+5. **Use bullet points** (- ) for unordered items
+6. **Bold key terms** (double asterisks) — bold important concepts, tools, company names, action items
 7. **End with a clear next step or question**
 
 ### Example of CORRECT formatting:
-\`\`\`
-Hi John! Here's my analysis of your CV.
+Hi John! Here is my analysis of your CV.
 
 ### Strengths
 - **Vue.js and Laravel** experience is solid for fullstack roles
 - **3+ years** of experience shows good career progression
 
 ### Areas to Improve
-1. **Quantify achievements** — Add metrics like "improved API response times by 30%"
-2. **Stronger action verbs** — Replace "worked on" with "architected" or "led"
+1. **Quantify achievements** — Add metrics like improved API response times by 30%
+2. **Stronger action verbs** — Replace worked on with architected or led
 3. **Skills section** — Group into categories (Frontend, Backend, Tools)
 
 ### Quick Action Items
-- [ ] Add 2-3 quantified achievements to each role
-- [ ] Update summary to highlight your fullstack expertise
-- [ ] Add relevant certifications or projects
+- Add 2-3 quantified achievements to each role
+- Update summary to highlight your fullstack expertise
+- Add relevant certifications or projects
 
 Would you like me to help rewrite any specific section?
-\`\`\`
 
 ### WRONG formatting (never do this):
 - Walls of text with no line breaks
