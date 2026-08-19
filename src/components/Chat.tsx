@@ -237,30 +237,30 @@ export default function Chat({ userId, sessionId }: ChatProps) {
             >
               {msg.role === "assistant" ? (
                 msg.content ? (
-                  <div className="chat-markdown space-y-2">
+                  <div className="chat-markdown">
                     <ReactMarkdown
                       components={{
-                        h1: ({ children }) => <h1 className="text-lg font-bold text-gray-900 mt-3 mb-1">{children}</h1>,
-                        h2: ({ children }) => <h2 className="text-base font-bold text-gray-900 mt-3 mb-1">{children}</h2>,
-                        h3: ({ children }) => <h3 className="text-sm font-bold text-gray-800 mt-2 mb-1">{children}</h3>,
-                        p: ({ children }) => <p className="text-sm text-gray-800 leading-relaxed">{children}</p>,
-                        ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 text-sm text-gray-800">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 text-sm text-gray-800">{children}</ol>,
+                        h1: ({ children }) => <h1 className="text-lg font-bold text-gray-900 mt-4 mb-2 first:mt-0">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-base font-bold text-gray-900 mt-4 mb-2 first:mt-0">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-sm font-bold text-gray-800 mt-3 mb-1.5 first:mt-0">{children}</h3>,
+                        p: ({ children }) => <p className="text-sm text-gray-800 leading-relaxed mb-2 last:mb-0">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 my-2 text-sm text-gray-800">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1.5 my-2 text-sm text-gray-800">{children}</ol>,
                         li: ({ children }) => <li className="leading-relaxed">{children}</li>,
                         strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
-                        em: ({ children }) => <em className="italic">{children}</em>,
+                        em: ({ children }) => <em className="italic text-gray-700">{children}</em>,
                         code: ({ children, className }) => {
                           const isInline = !className;
                           return isInline ? (
                             <code className="bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>
                           ) : (
-                            <code className="block bg-gray-200 text-gray-800 p-3 rounded-lg text-xs font-mono overflow-x-auto">{children}</code>
+                            <code className="block bg-gray-200 text-gray-800 p-3 rounded-lg text-xs font-mono overflow-x-auto my-2">{children}</code>
                           );
                         },
                         blockquote: ({ children }) => (
-                          <blockquote className="border-l-4 border-navy-300 pl-3 italic text-gray-600">{children}</blockquote>
+                          <blockquote className="border-l-4 border-navy-300 pl-3 italic text-gray-600 my-2">{children}</blockquote>
                         ),
-                        hr: () => <hr className="border-gray-200 my-2" />,
+                        hr: () => <hr className="border-gray-200 my-3" />,
                       }}
                     >
                       {msg.content}
