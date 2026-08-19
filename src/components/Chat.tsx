@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import ReactMarkdown from "react-markdown";
 import { fetchCVs, insertChatMessage, fetchChatMessages, updateChatSessionTitle } from "../lib/supabase";
 
 interface Message {
@@ -228,20 +229,55 @@ export default function Chat({ userId, sessionId }: ChatProps) {
             className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`max-w-[80%] rounded-2xl px-4 py-2 whitespace-pre-wrap text-sm ${
+              className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
                 msg.role === "user"
                   ? "bg-navy-800 text-white"
                   : "bg-gray-100 text-gray-900"
               }`}
             >
-              {msg.content ||
-                (isLoading && msg.role === "assistant" && (
-                  <span className="inline-flex gap-1">
-                    <span className="animate-bounce">●</span>
-                    <span className="animate-bounce delay-100">●</span>
-                    <span className="animate-bounce delay-200">●</span>
-                  </span>
-                ))}
+              {msg.role === "assistant" ? (
+                msg.content ? (
+                  <div className="chat-markdown space-y-2">
+                    <ReactMarkdown
+                      components={{
+                        h1: ({ children }) => <h1 className="text-lg font-bold text-gray-900 mt-3 mb-1">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-base font-bold text-gray-900 mt-3 mb-1">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-sm font-bold text-gray-800 mt-2 mb-1">{children}</h3>,
+                        p: ({ children }) => <p className="text-sm text-gray-800 leading-relaxed">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 text-sm text-gray-800">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 text-sm text-gray-800">{children}</ol>,
+                        li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                        strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                        em: ({ children }) => <em className="italic">{children}</em>,
+                        code: ({ children, className }) => {
+                          const isInline = !className;
+                          return isInline ? (
+                            <code className="bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>
+                          ) : (
+                            <code className="block bg-gray-200 text-gray-800 p-3 rounded-lg text-xs font-mono overflow-x-auto">{children}</code>
+                          );
+                        },
+                        blockquote: ({ children }) => (
+                          <blockquote className="border-l-4 border-navy-300 pl-3 italic text-gray-600">{children}</blockquote>
+                        ),
+                        hr: () => <hr className="border-gray-200 my-2" />,
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  isLoading && (
+                    <span className="inline-flex gap-1">
+                      <span className="animate-bounce">●</span>
+                      <span className="animate-bounce delay-100">●</span>
+                      <span className="animate-bounce delay-200">●</span>
+                    </span>
+                  )
+                )
+              ) : (
+                <span className="whitespace-pre-wrap">{msg.content}</span>
+              )}
             </div>
           </div>
         ))}

@@ -47,12 +47,17 @@ You MUST stay in character at all times. Never break role.
 
 ## Response Style
 - Be direct, actionable, and encouraging — not vague or generic
-- Use bullet points and structured formatting for clarity
+- Use **clean markdown** formatting for every response
+- Structure responses with clear sections using ## headings and ### subheadings
+- Use **bold** for key terms and action items
+- Use bullet points (- ) and numbered lists (1. ) for clarity
+- Separate sections with blank lines for readability
 - When reviewing CVs or cover letters, give specific before/after examples
 - If a user shares a job description, tailor your advice specifically to that role
 - Be honest but supportive — point out weaknesses constructively
 - Use professional but approachable language
-- Keep responses concise unless the user asks for detailed advice`;
+- Keep responses concise unless the user asks for detailed advice
+- Never dump long paragraphs — always break content into structured sections`;
 
 function buildSystemInstruction(cvData) {
   if (!cvData) {
