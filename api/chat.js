@@ -21,8 +21,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Message is required" });
     }
 
-    const apiKey =
-      process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error("Missing Gemini API key");
     }
@@ -43,12 +42,14 @@ export default async function handler(req, res) {
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
-    const reader = result.stream.getReader();
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      res.write(`data: ${value}\n\n`);
+    // ✅ ONLY THIS — for await loop
+    for await (const chunk of result.stream) {
+      const text = chunk.text();
+      if (text) {
+        res.write(`data: ${text}\n\n`);
+      }
     }
+
     res.write("data: [DONE]\n\n");
     res.end();
   } catch (error) {
