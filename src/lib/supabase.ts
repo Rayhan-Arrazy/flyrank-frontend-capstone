@@ -144,3 +144,65 @@ export async function deleteJobSuggestions(cvId: string) {
     .eq("cv_id", cvId);
   if (error) throw error;
 }
+
+// Chat Session operations
+export async function fetchChatSessions(userId: string) {
+  const { data, error } = await supabase
+    .from("chat_sessions")
+    .select("*")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function createChatSession(userId: string, title?: string) {
+  const { data, error } = await supabase
+    .from("chat_sessions")
+    .insert({ user_id: userId, title: title || "New Chat" })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateChatSessionTitle(sessionId: string, title: string) {
+  const { error } = await supabase
+    .from("chat_sessions")
+    .update({ title, updated_at: new Date().toISOString() })
+    .eq("id", sessionId);
+  if (error) throw error;
+}
+
+export async function deleteChatSession(sessionId: string) {
+  const { error } = await supabase
+    .from("chat_sessions")
+    .delete()
+    .eq("id", sessionId);
+  if (error) throw error;
+}
+
+// Chat Message operations
+export async function fetchChatMessages(sessionId: string) {
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .select("*")
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function insertChatMessage(
+  sessionId: string,
+  role: "user" | "assistant",
+  content: string
+) {
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .insert({ session_id: sessionId, role, content })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}

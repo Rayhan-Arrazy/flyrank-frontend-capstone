@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { fetchCVs, insertChatMessage, fetchChatMessages, updateChatSessionTitle } from "../lib/supabase";
 
 interface Message {
   id: string;
@@ -6,30 +7,91 @@ interface Message {
   content: string;
 }
 
-export default function Chat() {
+interface ChatProps {
+  userId: string;
+  sessionId: string | null;
+}
+
+export default function Chat({ userId, sessionId }: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [stopRequested, setStopRequested] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const cvDataRef = useRef<unknown>(null);
+  const hasLoadedRef = useRef<string | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Load CV data once
+  useEffect(() => {
+    if (!userId) return;
+    fetchCVs(userId).then((cvs) => {
+      cvDataRef.current = cvs?.[0] || null;
+    }).catch(() => {});
+  }, [userId]);
+
+  // Load messages when session changes
+  useEffect(() => {
+    if (!sessionId) {
+      setMessages([]);
+      hasLoadedRef.current = null;
+      return;
+    }
+    if (hasLoadedRef.current === sessionId) return;
+    hasLoadedRef.current = sessionId;
+
+    setLoadingMessages(true);
+    fetchChatMessages(sessionId)
+      .then((rows) => {
+        setMessages(
+          rows.map((r) => ({ id: r.id, role: r.role as "user" | "assistant", content: r.content }))
+        );
+      })
+      .catch(() => setMessages([]))
+      .finally(() => setLoadingMessages(false));
+  }, [sessionId]);
+
   useEffect(() => {
     if (!isStreaming) scrollToBottom();
   }, [messages, isStreaming]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const saveMessage = useCallback(
+    async (sessionId: string, role: "user" | "assistant", content: string) => {
+      try {
+        return await insertChatMessage(sessionId, role, content);
+      } catch {
+        return null;
+      }
+    },
+    []
+  );
 
+  const generateTitle = useCallback(
+    async (sessionId: string, firstMessage: string) => {
+      const title = firstMessage.length > 40 ? firstMessage.slice(0, 40) + "..." : firstMessage;
+      try {
+        await updateChatSessionTitle(sessionId, title);
+      } catch {
+        // ignore
+      }
+    },
+    []
+  );
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading || !sessionId) return;
+
+    const userContent = input.trim();
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim(),
+      content: userContent,
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -45,6 +107,13 @@ export default function Chat() {
     };
     setMessages((prev) => [...prev, assistantMessage]);
 
+    // Save user message to DB
+    const isFirstMessage = messages.length === 0;
+    saveMessage(sessionId, "user", userContent);
+    if (isFirstMessage) {
+      generateTitle(sessionId, userContent);
+    }
+
     abortControllerRef.current = new AbortController();
 
     try {
@@ -52,8 +121,9 @@ export default function Chat() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: input.trim(),
+          message: userContent,
           history: messages.map((m) => ({ role: m.role, content: m.content })),
+          cvData: cvDataRef.current,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -90,6 +160,11 @@ export default function Chat() {
           }
         }
       }
+
+      // Save assistant message to DB
+      if (fullContent) {
+        saveMessage(sessionId, "assistant", fullContent);
+      }
     } catch (error: any) {
       if (error.name === "AbortError") {
         console.log("Stream stopped by user");
@@ -118,10 +193,21 @@ export default function Chat() {
     }
   };
 
+  if (!sessionId) {
+    return (
+      <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+        Select a chat or start a new one
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && (
+        {loadingMessages && (
+          <div className="text-center text-gray-400 text-sm py-8">Loading messages...</div>
+        )}
+        {!loadingMessages && messages.length === 0 && (
           <div className="text-center text-gray-400 mt-20">
             <p className="text-lg font-medium text-gray-500">Talk to Applico AI</p>
             <p className="text-sm mt-2">
@@ -142,7 +228,7 @@ export default function Chat() {
             className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+              className={`max-w-[80%] rounded-2xl px-4 py-2 whitespace-pre-wrap text-sm ${
                 msg.role === "user"
                   ? "bg-navy-800 text-white"
                   : "bg-gray-100 text-gray-900"
